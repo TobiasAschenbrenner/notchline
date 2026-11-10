@@ -3,8 +3,7 @@ import RealityKit
 import SwiftUI
 
 struct AirPodsProGlyph: View {
-    private static let openingAngle: Float = .pi
-    private static let openingHoldDuration: TimeInterval = 0.25
+    private static let openingHoldDuration: TimeInterval = 0.6
     private static let revolutionDuration: TimeInterval = 6
     private static let model: Entity? = {
         guard MTLCreateSystemDefaultDevice() != nil,
@@ -21,10 +20,11 @@ struct AirPodsProGlyph: View {
                 let elapsed = context.date.timeIntervalSince(startedAt ?? context.date)
                 let rotationTime = max(0, elapsed - Self.openingHoldDuration)
                 let fraction = rotationTime.truncatingRemainder(dividingBy: Self.revolutionDuration) / Self.revolutionDuration
-                let turn = Self.openingAngle + (reduceMotion ? 0 : Float(fraction) * 2 * .pi)
+                let turn = reduceMotion ? 0 : Float(fraction) * 2 * .pi
                 AirPodsProScene(model: model, turn: turn)
             }
             .frame(width: 24, height: 22)
+            .opacity(0.86)
             .onAppear { startedAt = .now }
         } else {
             Image(systemName: "airpodspro")
@@ -51,13 +51,13 @@ private struct AirPodsProScene: NSViewRepresentable {
 
         let camera = PerspectiveCamera()
         // A level camera with a narrow field of view keeps the stems aligned as the pair turns.
-        camera.camera.fieldOfViewInDegrees = 5.5
+        camera.camera.fieldOfViewInDegrees = 3.9
         camera.look(at: .zero, from: [0, 0, 1.4], relativeTo: nil)
         anchor.addChild(camera)
 
-        anchor.addChild(light(from: [-2, 3, 4], intensity: 2_200))
-        anchor.addChild(light(from: [3, 1, 2], intensity: 800))
-        anchor.addChild(light(from: [0, 2, -3], intensity: 1_600))
+        anchor.addChild(light(from: [-2, 3, 4], intensity: 1_400))
+        anchor.addChild(light(from: [3, 1, 2], intensity: 500))
+        anchor.addChild(light(from: [0, 2, -3], intensity: 1_000))
         view.scene.addAnchor(anchor)
         return view
     }

@@ -10,11 +10,15 @@ struct NotchAlertView: View {
     var body: some View {
         let width = frame.size.width
         let height = cameraHeight + min(6, max(0, frame.size.height - cameraHeight))
+        let hoverProgress = (height - cameraHeight) / 6
+        let hoverSizeIncrease = 2 * hoverProgress
         let railWidth = NotchHUDMetrics.railWidth
-            + (NotchHUDMetrics.hoveredRailWidth - NotchHUDMetrics.railWidth) * (height - cameraHeight) / 6
-        let inset = alert.kind == .headphones ? NotchHUDMetrics.headphoneWingInset : NotchHUDMetrics.wingInset
+            + (NotchHUDMetrics.hoveredRailWidth - NotchHUDMetrics.railWidth) * hoverProgress
+        let isHeadphoneAlert = alert.kind == .headphones
+        let leadingInset = isHeadphoneAlert ? NotchHUDMetrics.headphoneWingInset : NotchHUDMetrics.leadingInset + hoverProgress
+        let trailingInset = isHeadphoneAlert ? NotchHUDMetrics.headphoneWingInset : NotchHUDMetrics.trailingInset + hoverSizeIncrease
         return HStack(spacing: 0) {
-            HStack(spacing: 6) {
+            HStack(spacing: 7 + hoverSizeIncrease) {
                 if case .headphones(let name, "airpodspro", true, _) = alert {
                     AirPodsProGlyph(reduceMotion: reduceMotion)
                         .id(name)
@@ -22,21 +26,23 @@ struct NotchAlertView: View {
                     AirPodsGlyph()
                 } else {
                     Image(systemName: alert.symbol(for: output))
+                        .frame(width: isHeadphoneAlert ? nil : NotchHUDMetrics.symbolColumnWidth + hoverSizeIncrease)
                 }
                 if let label = alert.leadingLabel {
-                    Text(label).font(.system(size: 11, weight: .semibold)).lineLimit(1)
+                    Text(label).font(.system(size: 12 + hoverSizeIncrease, weight: .semibold)).lineLimit(1)
                 }
             }
-            .font(.system(size: NotchHUDMetrics.symbolSize, weight: .semibold))
+            .font(.system(size: isHeadphoneAlert ? 15 : NotchHUDMetrics.symbolSize + hoverSizeIncrease, weight: .semibold))
             .fixedSize()
             .modifier(NotchDetail(progress: frame.hud, blur: 4, x: 8))
 
             Spacer(minLength: 0)
-            alertReadout(alert, railWidth: railWidth)
+            alertReadout(alert, railWidth: railWidth, railHeight: NotchHUDMetrics.railHeight + hoverProgress)
                 .fixedSize()
                 .modifier(NotchDetail(progress: frame.hud, blur: 4, x: -8))
         }
-        .padding(.horizontal, inset)
+        .padding(.leading, leadingInset)
+        .padding(.trailing, trailingInset)
         .frame(width: width, height: height)
         .id(alert.kind)
         .allowsHitTesting(false)
@@ -44,9 +50,9 @@ struct NotchAlertView: View {
         .accessibilityLabel([alert.title, alert.subtitle].filter { !$0.isEmpty }.joined(separator: ", "))
     }
 
-    @ViewBuilder private func alertReadout(_ alert: NotchAlert, railWidth: CGFloat) -> some View {
+    @ViewBuilder private func alertReadout(_ alert: NotchAlert, railWidth: CGFloat, railHeight: CGFloat) -> some View {
         if let value = alert.value {
-            LevelMeter(value: value, height: NotchHUDMetrics.railHeight, trackOpacity: 0.23, fillOpacity: 1)
+            LevelMeter(value: value, height: railHeight, trackOpacity: 0.23, fillOpacity: 1)
                 .frame(width: railWidth)
                 .animation(reduceMotion ? nil : NotchMotion.level, value: value)
         } else if let label = alert.trailingLabel {

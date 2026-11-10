@@ -19,6 +19,7 @@ struct NotchMediaAnchors: View {
 
     var body: some View {
         let progress = frame.playerLayout
+        let paused = track?.playing == false
         func mix(_ from: CGFloat, _ to: CGFloat) -> CGFloat { from + (to - from) * progress }
         let compactWidth = geometry.compactPlaybackWidth
         let compactBodyWidth = compactWidth - 2 * NotchPresentation.compact.contour.shoulder
@@ -30,6 +31,9 @@ struct NotchMediaAnchors: View {
         let waveformX = geometry.playerWidth / 2 - PlaybackHeaderLayout.waveformInset - PlaybackWaveform.width / 2
         return ZStack(alignment: .top) {
             artwork(width: width, height: height)
+                .scaleEffect(mix(1, paused ? 0.84 : 1))
+                .opacity(mix(1, paused ? 0.55 : 1))
+                .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: paused)
                 .offset(x: mix(-wing, artworkX), y: centerY - height / 2)
             if let track {
                 PlaybackWaveform(playing: track.playing, reduceMotion: reduceMotion, tint: tint)
@@ -66,7 +70,7 @@ struct NotchMediaAnchors: View {
 }
 
 struct PlaybackWaveform: View {
-    static let width: CGFloat = 21
+    static let width: CGFloat = 22
     var playing: Bool
     var reduceMotion: Bool
     var tint: Color
@@ -74,16 +78,20 @@ struct PlaybackWaveform: View {
     var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 18, paused: !playing || reduceMotion)) { context in
             let time = context.date.timeIntervalSinceReferenceDate
-            HStack(spacing: 2.75) {
-                ForEach(0..<5) { index in
+            HStack(spacing: 2) {
+                ForEach(0..<6) { index in
                     Capsule().fill(tint.opacity(0.85))
-                        .frame(width: 2, height: playing && !reduceMotion
-                               ? 3 + abs(sin(time * 5 + Double(index) * 1.21)) * 9
-                               : CGFloat([4, 7, 11, 7, 4][index]))
+                        .frame(width: 2, height: barHeight(at: time, index: index))
                 }
             }
             .frame(width: Self.width, height: 14)
         }
         .accessibilityHidden(true)
+    }
+
+    private func barHeight(at time: TimeInterval, index: Int) -> CGFloat {
+        if !playing { return 2 }
+        if reduceMotion { return [4, 7, 11, 8, 5, 3][index] }
+        return 3 + abs(sin(time * 5 + Double(index) * 1.21)) * 9
     }
 }

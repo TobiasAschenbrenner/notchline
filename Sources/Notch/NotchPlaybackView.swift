@@ -23,7 +23,7 @@ struct NotchPlaybackView: View {
                     }
                 }
                 PlaybackScrubber(track: track) { sendCommand(.seek($0)) }
-                    .padding(.horizontal, 28)
+                    .padding(.horizontal, track.isLive ? 36 : 28)
             } else {
                 header {
                     VStack(alignment: .leading, spacing: 1) {
@@ -50,6 +50,8 @@ struct NotchPlaybackView: View {
         HStack(spacing: 12) {
             Color.clear.frame(width: PlaybackHeaderLayout.artworkWidth)
             content()
+                .padding(.leading, track?.playing == false ? 4 : 0)
+                .padding(.trailing, 4)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .offset(y: max(0, cameraHeight - 27.5))
             Color.clear.frame(width: PlaybackWaveform.width)
@@ -68,7 +70,7 @@ struct NotchPlaybackView: View {
                     sendCommand(.previous)
                 }
                 .disabled(track?.canSkip == false)
-                .foregroundStyle(.white.opacity(track?.canSkip == false ? 0.28 : 0.52))
+                .foregroundStyle(.white.opacity(track?.canSkip == false ? 1 : 0.52))
                 IconControl(icon: track?.playing == true ? "pause.fill" : "play.fill",
                             label: track?.playing == true ? "Pause" : "Play", size: 27) {
                     sendCommand(.toggle)
@@ -77,7 +79,7 @@ struct NotchPlaybackView: View {
                     sendCommand(.next)
                 }
                 .disabled(track?.canSkip == false)
-                .foregroundStyle(.white.opacity(track?.canSkip == false ? 0.28 : 0.52))
+                .foregroundStyle(.white.opacity(track?.canSkip == false ? 1 : 0.52))
             }
             .disabled(track == nil)
             .opacity(track == nil ? 0.36 : 1)
@@ -120,7 +122,7 @@ private struct OutputVolumeRail: View {
 
     var body: some View {
         GeometryReader { proxy in
-            LevelMeter(value: level, height: 6, trackOpacity: 0.16, fillOpacity: 0.52)
+            LevelMeter(value: level, height: 6, trackOpacity: 0.16, fillOpacity: 0.41, roundsFill: false)
                 .frame(maxHeight: .infinity)
                 .contentShape(Rectangle())
                 .gesture(DragGesture(minimumDistance: 0)
@@ -136,6 +138,8 @@ private struct OutputVolumeRail: View {
 
 private struct IconControl: View {
     static let width: CGFloat = 48
+    @Environment(\.isEnabled) private var isEnabled
+    @ViewState private var isHovered = false
 
     let icon: String
     let label: String
@@ -148,10 +152,12 @@ private struct IconControl: View {
             Image(systemName: icon)
                 .font(.system(size: size, weight: .semibold))
                 .frame(width: Self.width, height: 46)
-                .background(.white.opacity(highlighted ? 0.10 : 0), in: RoundedRectangle(cornerRadius: 15))
+                .background(.white.opacity(highlighted || (isEnabled && isHovered) ? 0.10 : 0),
+                            in: RoundedRectangle(cornerRadius: 15))
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .onHover { isHovered = $0 }
         .accessibilityLabel(label)
         .help(label)
     }

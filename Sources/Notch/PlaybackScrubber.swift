@@ -8,7 +8,7 @@ struct PlaybackScrubber: View {
     var body: some View {
         TimelineView(.periodic(from: .now, by: 0.5)) { context in
             let position = scrubbing ?? track.position(at: context.date)
-            HStack(spacing: 8) {
+            HStack(spacing: track.isLive ? 4 : 8) {
                 if track.canSeek {
                     Text(time(position)).frame(width: 36, alignment: .leading)
                     GeometryReader { proxy in
@@ -34,17 +34,30 @@ struct PlaybackScrubber: View {
                     }
                     Text("−" + time(max(0, track.duration - position))).frame(width: 40, alignment: .trailing)
                 } else if track.isLive {
-                    Capsule().fill(.white.opacity(0.15)).frame(height: 4)
+                    liveRail()
                     Text("LIVE").foregroundStyle(.white.opacity(0.58))
-                    Capsule().fill(.white.opacity(0.15)).frame(height: 4)
+                    liveRail(fadesAtLeadingEdge: true)
                 }
             }
             .frame(height: 16)
-            .font(.system(size: 9.5, weight: .semibold))
+            .font(.system(size: track.isLive ? 10.5 : 9.5, weight: .semibold))
             .monospacedDigit()
             .foregroundStyle(.white.opacity(0.57))
         }
         .onChange(of: track.id) { scrubbing = nil }
+    }
+
+    private func liveRail(fadesAtLeadingEdge: Bool = false) -> some View {
+        Capsule().fill(.white.opacity(0.15))
+            .frame(height: 6)
+            .mask {
+                HStack(spacing: 0) {
+                    Color.white
+                    LinearGradient(colors: [.white, .clear], startPoint: .leading, endPoint: .trailing)
+                        .frame(width: 20)
+                }
+            }
+            .scaleEffect(x: fadesAtLeadingEdge ? -1 : 1)
     }
 
     private func fraction(_ x: CGFloat, width: CGFloat) -> Double { min(1, max(0, x / max(1, width))) }
