@@ -252,6 +252,7 @@ private enum Diagnostics {
                 && LevelKey.displayDown.nextLevel(from: 0.5, fine: true) == 0.484375
                 && LevelKey.displayUp.nextLevel(from: 1, fine: false) == 1
                 && LevelKey.soundDown.nextLevel(from: 0, fine: false) == 0),
+            ("Keyboard filter owns complete presses and passes unsupported keys to macOS", levelKeyRouting()),
             ("System media frame and elapsed position", track?.title == "Example" && track?.position(at: now.addingTimeInterval(20)) == 60),
             ("Live, timed video and unavailable timelines", liveTrack?.isLive == true && liveTrack?.canSeek == false && liveTrack?.canSkip == false
                 && browserTrack?.canSeek == true && browserTrack?.canSkip == false && browserTrack?.fallbackArtwork == "play.rectangle.fill"
@@ -261,5 +262,26 @@ private enum Diagnostics {
         ]
         for (name, passed) in checks { print("\(passed ? "PASS" : "FAIL")  \(name)") }
         return checks.allSatisfy { $0.1 }
+    }
+
+    private static func levelKeyRouting() -> Bool {
+        let tap = LevelKeyTap()
+        var adjusted: [LevelKey] = []
+        var fineStep = false
+        func send(_ key: LevelKey, state: Int = 0xA, repeatKey: Bool = false, flags: CGEventFlags = []) -> Bool {
+            tap.consumeAuxiliary(data: key.rawValue << 16 | state << 8 | (repeatKey ? 1 : 0), flags: flags)
+        }
+        tap.apply = { key, fine in
+            adjusted.append(key)
+            fineStep = fine
+            return key != .soundDown
+        }
+        return send(.displayUp, flags: [.maskShift, .maskAlternate]) && fineStep
+            && send(.displayUp, repeatKey: true) && send(.displayUp, state: 0xB)
+            && send(.mute) && send(.mute, repeatKey: true) && send(.mute, state: 0xB)
+            && !send(.soundDown) && !send(.soundDown, repeatKey: true) && !send(.soundDown, state: 0xB)
+            && !send(.soundUp, flags: .maskAlternate) && !send(.soundUp, state: 0xB)
+            && !tap.consumeAuxiliary(data: 16 << 16 | 0xA << 8, flags: [])
+            && adjusted == [.displayUp, .displayUp, .mute, .soundDown]
     }
 }

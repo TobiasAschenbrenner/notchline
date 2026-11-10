@@ -94,9 +94,6 @@ final class SystemSignals: NSObject, ObservableObject {
         guard let coreDisplay, let symbol = dlsym(coreDisplay, "CoreDisplay_Display_SetUserBrightness") else { return nil }
         return unsafeBitCast(symbol, to: UserBrightnessWriter.self)
     }()
-    private var mediaKeyMonitor: Any?
-    private var localMediaKeyMonitor: Any?
-    private var keySample: Task<Void, Never>?
     private var batteryRead: Task<Void, Never>?
     private var batteryDeviceName: String?
     private let model: NotchModel
@@ -104,7 +101,6 @@ final class SystemSignals: NSObject, ObservableObject {
     private var slowTimer: Timer?
     private var observers: [NSObjectProtocol] = []
     private var sound: SoundOutput?
-    private var brightness: Double?
     private var displayID: CGDirectDisplayID?
     private var power: PowerState?
 
@@ -123,14 +119,6 @@ final class SystemSignals: NSObject, ObservableObject {
             self?.refreshLevelKeyTap()
         }
 
-        mediaKeyMonitor = NSEvent.addGlobalMonitorForEvents(matching: .systemDefined) { [weak self] event in
-            MainActor.assumeIsolated { self?.observeMediaKey(event) }
-        }
-        localMediaKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: .systemDefined) { [weak self] event in
-            self?.observeMediaKey(event)
-            return event
-        }
-
         for (name, enabled) in [("_NSDoNotDisturbEnabledNotification", true), ("_NSDoNotDisturbDisabledNotification", false)] {
             observers.append(DistributedNotificationCenter.default().addObserver(
                 forName: Notification.Name(name), object: nil, queue: .main
@@ -143,10 +131,7 @@ final class SystemSignals: NSObject, ObservableObject {
     func stop() {
         stopBluetooth()
         levelKeys.stop()
-        keySample?.cancel()
         batteryRead?.cancel()
-        if let mediaKeyMonitor { NSEvent.removeMonitor(mediaKeyMonitor) }
-        if let localMediaKeyMonitor { NSEvent.removeMonitor(localMediaKeyMonitor) }
         fastTimer?.invalidate()
         slowTimer?.invalidate()
         for observer in observers { DistributedNotificationCenter.default().removeObserver(observer) }
@@ -154,6 +139,9 @@ final class SystemSignals: NSObject, ObservableObject {
     }
 
     func openAccessibilitySettings() {
+        let prompt = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+        _ = AXIsProcessTrustedWithOptions(prompt)
+        refreshLevelKeyTap()
         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
             NSWorkspace.shared.open(url)
         }
@@ -177,7 +165,6 @@ final class SystemSignals: NSObject, ObservableObject {
             guard let displayID, let level = currentBrightness() else { return false }
             let next = key.nextLevel(from: level, fine: fine)
             guard next == level || writeDisplayBrightness(next, to: displayID) else { return false }
-            pollLevels(reportBrightness: false)
             model.show(.brightness(next), pulseLimit: key == .displayUp && level == 1)
         } else {
             guard let output = Self.currentSound(), let level = output.volume else { return false }
@@ -193,7 +180,6 @@ final class SystemSignals: NSObject, ObservableObject {
                     return false
                 }
             }
-            pollLevels(reportVolume: false)
             model.show(.volume(next, muted: muted || (output.muted && key != .mute && next == 0)),
                        pulseLimit: key == .soundUp && !output.muted && level == 1)
         }
@@ -218,49 +204,21 @@ final class SystemSignals: NSObject, ObservableObject {
         return timer
     }
 
-    private func observeMediaKey(_ event: NSEvent) {
-        guard event.subtype.rawValue == 8, (event.data1 >> 8) & 0xFF == 0xA else { return }
-        let key = (event.data1 >> 16) & 0xFFFF
-        guard [0, 1, 2, 3, 7].contains(key) else { return }
-        keySample?.cancel()
-        keySample = Task { [weak self] in
-            try? await Task.sleep(for: .milliseconds(90))
-            guard !Task.isCancelled, let self else { return }
-            if key == 2 || key == 3 {
-                if let level = self.currentBrightness() { self.model.show(.brightness(level)) }
-            } else if let output = Self.currentSound(), let level = output.volume {
-                self.model.show(.volume(level, muted: output.muted))
-            }
-        }
-    }
-
-    private func pollLevels(reportVolume: Bool = true, reportBrightness: Bool = true) {
+    private func pollLevels() {
+        // A key passed to macOS can already produce a native indicator. Polling
+        // keeps settings current without presenting a second indicator.
         let nextSound = Self.currentSound()
         if sound != nextSound {
             defer { sound = nextSound }
             model.output = nextSound
-            if let sound, let next = nextSound {
-                if next.id != sound.id || next.source != sound.source {
-                    if next.isPersonalAudio && (!bluetoothEnabled || next.transport == kAudioDeviceTransportTypeBuiltIn) {
-                        showHeadphones(name: next.routeName, icon: next.icon, connected: true)
-                    }
-                } else if reportVolume, let volume = next.volume, let previous = sound.volume,
-                          abs(previous - volume) >= 0.001 || sound.muted != next.muted {
-                    model.show(.volume(volume, muted: next.muted))
-                }
+            if let sound, let next = nextSound, next.id != sound.id || next.source != sound.source,
+               next.isPersonalAudio, !bluetoothEnabled || next.transport == kAudioDeviceTransportTypeBuiltIn {
+                showHeadphones(name: next.routeName, icon: next.icon, connected: true)
             }
         }
 
-        if let next = currentBrightness() {
-            if reportBrightness, let brightness, abs(next - brightness) >= 0.006 {
-                model.show(.brightness(next))
-            }
-            if model.brightness != next { model.brightness = next }
-            brightness = next
-        } else {
-            if model.brightness != nil { model.brightness = nil }
-            brightness = nil
-        }
+        let nextBrightness = currentBrightness()
+        if model.brightness != nextBrightness { model.brightness = nextBrightness }
     }
 
     private func pollPowerAndFocus() {
@@ -288,10 +246,7 @@ final class SystemSignals: NSObject, ObservableObject {
         let builtIn = NSScreen.screens
             .compactMap { ($0.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value }
             .first { CGDisplayIsBuiltin($0) != 0 } ?? (CGDisplayIsBuiltin(main) != 0 ? main : nil)
-        if displayID != builtIn {
-            displayID = builtIn
-            brightness = nil
-        }
+        displayID = builtIn
     }
 
     private func currentBrightness() -> Double? {
@@ -310,7 +265,12 @@ final class SystemSignals: NSObject, ObservableObject {
         let adjusted = writeVolume(level, to: output)
         if adjusted && output.muted && level > 0 { _ = setMute(false, on: output) }
         controlError = adjusted ? nil : "This audio output manages its own volume."
-        pollLevels(reportVolume: !model.outputVolumeOpen)
+        pollLevels()
+        if adjusted, !model.outputVolumeOpen, let current = model.output, let volume = current.volume,
+           current.id == output.id, current.source == output.source,
+           current.volume != output.volume || current.muted != output.muted {
+            model.show(.volume(volume, muted: current.muted))
+        }
     }
 
     private func writeVolume(_ level: Float, to output: SoundOutput) -> Bool {
@@ -336,6 +296,7 @@ final class SystemSignals: NSObject, ObservableObject {
         }
         controlError = nil
         pollLevels()
+        model.show(.brightness(level))
     }
 
     private func writeDisplayBrightness(_ level: Double, to display: CGDirectDisplayID) -> Bool {

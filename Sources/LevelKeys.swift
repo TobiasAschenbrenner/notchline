@@ -14,21 +14,18 @@ enum LevelKey: Int, Hashable {
         return min(1, max(0, next / steps))
     }
 
-    init?(event: NSEvent) {
-        if event.type == .systemDefined, event.subtype.rawValue == NX_SUBTYPE_AUX_CONTROL_BUTTONS {
-            self.init(rawValue: (event.data1 >> 16) & 0xFFFF)
-        } else if event.type == .keyDown || event.type == .keyUp {
-            switch event.keyCode {
-            case 144: self = .displayUp
-            case 145: self = .displayDown
-            default: return nil
-            }
-        } else { return nil }
+    init?(brightnessKeyCode: Int64) {
+        switch brightnessKeyCode {
+        case 144: self = .displayUp
+        case 145: self = .displayDown
+        default: return nil
+        }
     }
 }
 
 @MainActor
 final class LevelKeyTap {
+    private static let systemDefined = UInt32(NSEvent.EventType.systemDefined.rawValue)
     private var port: CFMachPort?
     private var source: CFRunLoopSource?
     private var handled: Set<LevelKey> = []
@@ -37,17 +34,22 @@ final class LevelKeyTap {
 
     func start() {
         guard port == nil, AXIsProcessTrusted() else { return }
-        let systemDefined = CGEventMask(1) << NSEvent.EventType.systemDefined.rawValue
+        let systemDefined = CGEventMask(1) << Self.systemDefined
         let mask = systemDefined | (1 << CGEventType.keyDown.rawValue) | (1 << CGEventType.keyUp.rawValue)
-        guard let port = CGEvent.tapCreate(tap: .cgSessionEventTap, place: .headInsertEventTap,
-                                           options: .defaultTap, eventsOfInterest: mask,
-                                           callback: { _, type, event, context in
+        let callback: CGEventTapCallBack = { _, type, event, context in
             MainActor.assumeIsolated {
                 guard let context else { return Unmanaged.passUnretained(event) }
                 let listener = Unmanaged<LevelKeyTap>.fromOpaque(context).takeUnretainedValue()
                 return listener.consume(type: type, event: event) ? nil : Unmanaged.passUnretained(event)
             }
-        }, userInfo: Unmanaged.passUnretained(self).toOpaque()),
+        }
+        let context = Unmanaged.passUnretained(self).toOpaque()
+        func makeTap(at location: CGEventTapLocation) -> CFMachPort? {
+            CGEvent.tapCreate(tap: location, place: .headInsertEventTap, options: .defaultTap,
+                              eventsOfInterest: mask, callback: callback, userInfo: context)
+        }
+        // Filter hardware keys as early as macOS allows, before system shortcut handling.
+        guard let port = makeTap(at: .cghidEventTap) ?? makeTap(at: .cgSessionEventTap),
               let source = CFMachPortCreateRunLoopSource(nil, port, 0) else { return }
         self.port = port
         self.source = source
@@ -69,20 +71,37 @@ final class LevelKeyTap {
             if let port, AXIsProcessTrusted() { CGEvent.tapEnable(tap: port, enable: true) }
             return false
         }
-        guard let keyboard = NSEvent(cgEvent: event), let key = LevelKey(event: keyboard) else { return false }
-        let system = keyboard.type == .systemDefined
-        let state = system ? (keyboard.data1 >> 8) & 0xFF : (type == .keyDown ? 0xA : 0xB)
-        if state == 0xB { return handled.remove(key) != nil }
-        guard state == 0xA else { return false }
+        if type.rawValue == Self.systemDefined {
+            guard let keyboard = NSEvent(cgEvent: event), keyboard.type == .systemDefined,
+                  keyboard.subtype.rawValue == NX_SUBTYPE_AUX_CONTROL_BUTTONS else { return false }
+            return consumeAuxiliary(data: keyboard.data1, flags: event.flags)
+        }
+        guard type == .keyDown || type == .keyUp,
+              let key = LevelKey(brightnessKeyCode: event.getIntegerValueField(.keyboardEventKeycode)) else { return false }
+        return consume(key, pressed: type == .keyDown,
+                       repeated: event.getIntegerValueField(.keyboardEventAutorepeat) != 0, flags: event.flags)
+    }
 
-        let modifiers = keyboard.modifierFlags
-        let fine = modifiers.contains([.shift, .option])
+    func consumeAuxiliary(data: Int, flags: CGEventFlags) -> Bool {
+        guard let key = LevelKey(rawValue: (data >> 16) & 0xFFFF) else { return false }
+        let state = (data >> 8) & 0xFF
+        guard state == NX_KEYDOWN || state == NX_KEYUP else { return false }
+        return consume(key, pressed: state == NX_KEYDOWN, repeated: data & 1 != 0, flags: flags)
+    }
+
+    private func consume(_ key: LevelKey, pressed: Bool, repeated: Bool, flags: CGEventFlags) -> Bool {
+        if !pressed { return handled.remove(key) != nil }
+        if repeated {
+            guard handled.contains(key) else { return false }
+            if key == .mute { return true }
+        }
+        let fine = flags.contains([.maskShift, .maskAlternate])
         // Option alone opens the matching System Settings page.
-        guard !modifiers.contains(.command), !modifiers.contains(.control),
-              !modifiers.contains(.option) || fine else { return false }
-        let repeated = system ? keyboard.data1 & 1 == 1 : keyboard.isARepeat
-        if key == .mute, repeated { return handled.contains(key) }
-        guard apply?(key, fine) == true else { return false }
+        guard !flags.contains(.maskCommand), !flags.contains(.maskControl),
+              !flags.contains(.maskAlternate) || fine, apply?(key, fine) == true else {
+            handled.remove(key)
+            return false
+        }
         handled.insert(key)
         return true
     }

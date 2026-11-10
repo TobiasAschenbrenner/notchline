@@ -63,9 +63,9 @@ struct SettingsView: View {
                 if model.levelAlerts {
                     LabeledContent("Keyboard indicators", value: signals.replacesSystemHUD ? "Notchline" : "macOS")
                     if !signals.replacesSystemHUD {
-                        Text("Allow Notchline in Accessibility to replace the macOS volume and brightness indicators for the hardware keys.")
+                        Text("Allow this copy of Notchline in Accessibility to handle the volume and brightness keys. Until then, macOS handles the keys and shows its indicators.")
                             .font(.caption).foregroundStyle(.secondary)
-                        Button("Open Accessibility Settings…", action: signals.openAccessibilitySettings)
+                        Button("Allow Keyboard Controls…", action: signals.openAccessibilitySettings)
                     }
                 }
                 Toggle("Headphone alerts", isOn: $model.headphonesAlerts)
