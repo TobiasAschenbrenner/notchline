@@ -6,7 +6,8 @@ import SwiftUI
 @MainActor
 final class SystemSignals: NSObject, ObservableObject {
     @Published private(set) var bluetoothEnabled = UserDefaults.standard.bool(forKey: "bluetoothConnections")
-    @Published private(set) var controlError: String?
+    @Published private(set) var volumeControlError: String?
+    @Published private(set) var brightnessControlError: String?
     @Published private(set) var replacesSystemHUD = false
     var canShowLevelHUD: (() -> Bool)?
     private let levelKeys = LevelKeyTap()
@@ -25,6 +26,7 @@ final class SystemSignals: NSObject, ObservableObject {
     }
 
     func start() {
+        guard levelPollingTimer == nil else { return }
         updateDisplay()
         if bluetoothEnabled { headphones.startBluetoothMonitoring() }
         pollLevels()
@@ -49,9 +51,12 @@ final class SystemSignals: NSObject, ObservableObject {
     func stop() {
         headphones.stopBluetoothMonitoring()
         levelKeys.stop()
+        replacesSystemHUD = false
         headphones.cancelBatteryRead()
         levelPollingTimer?.invalidate()
         systemPollingTimer?.invalidate()
+        levelPollingTimer = nil
+        systemPollingTimer = nil
         for observer in observers { DistributedNotificationCenter.default().removeObserver(observer) }
         observers.removeAll()
     }
@@ -80,28 +85,35 @@ final class SystemSignals: NSObject, ObservableObject {
     private func handleLevelKey(_ key: LevelKey, fine: Bool) -> Bool {
         guard model.isAlertEnabled(key.isDisplay ? .brightness : .volume),
               canShowLevelHUD?() == true else { return false }
-        if key.isDisplay {
-            guard let level = displayBrightness.currentLevel() else { return false }
-            let next = key.nextLevel(from: level, fine: fine)
-            guard next == level || displayBrightness.setLevel(next) else { return false }
-            model.show(.brightness(next), pulseLimit: key == .displayUp && level == 1)
-        } else {
-            guard let output = AudioOutputDevice.current(), let level = output.volume else { return false }
-            let muted = key == .mute && !output.muted
-            let next = key == .mute ? level : key.nextLevel(from: output.muted ? 0 : level, fine: fine)
-            if key == .mute {
-                guard AudioOutputDevice.setMuted(muted, on: output) else { return false }
-            } else {
-                let unmuted = !output.muted || next == 0 || AudioOutputDevice.setMuted(false, on: output)
-                guard unmuted else { return false }
-                if next != level, !AudioOutputDevice.writeVolume(Float(next), to: output) {
-                    if output.muted, next > 0 { _ = AudioOutputDevice.setMuted(true, on: output) }
-                    return false
-                }
-            }
-            model.show(.volume(next, muted: muted || (output.muted && key != .mute && next == 0)),
-                       pulseLimit: key == .soundUp && !output.muted && level == 1)
+        return key.isDisplay ? applyDisplayKey(key, fine: fine) : applySoundKey(key, fine: fine)
+    }
+
+    private func applyDisplayKey(_ key: LevelKey, fine: Bool) -> Bool {
+        guard let level = displayBrightness.currentLevel() else { return false }
+        let next = key.nextLevel(from: level, fine: fine)
+        guard next == level || displayBrightness.setLevel(next) else { return false }
+        model.show(.brightness(next), pulseLimit: key == .displayUp && level == 1)
+        return true
+    }
+
+    private func applySoundKey(_ key: LevelKey, fine: Bool) -> Bool {
+        guard let output = AudioOutputDevice.current(), let level = output.volume else { return false }
+        if key == .mute {
+            let muted = !output.muted
+            guard AudioOutputDevice.setMuted(muted, on: output) else { return false }
+            model.show(.volume(level, muted: muted))
+            return true
         }
+
+        let next = key.nextLevel(from: output.muted ? 0 : level, fine: fine)
+        let needsUnmute = output.muted && next > 0
+        guard !needsUnmute || AudioOutputDevice.setMuted(false, on: output) else { return false }
+        if next != level, !AudioOutputDevice.writeVolume(Float(next), to: output) {
+            if needsUnmute { _ = AudioOutputDevice.setMuted(true, on: output) }
+            return false
+        }
+        model.show(.volume(next, muted: output.muted && next == 0),
+                   pulseLimit: key == .soundUp && !output.muted && level == 1)
         return true
     }
 
@@ -169,7 +181,7 @@ final class SystemSignals: NSObject, ObservableObject {
         let level = Float(min(1, max(0, value)))
         let adjusted = AudioOutputDevice.writeVolume(level, to: output)
         if adjusted && output.muted && level > 0 { _ = AudioOutputDevice.setMuted(false, on: output) }
-        controlError = adjusted ? nil : "This audio output manages its own volume."
+        volumeControlError = adjusted ? nil : "This audio output manages its own volume."
         pollLevels()
         if adjusted, !model.outputVolumeOpen, let current = model.output, let volume = current.volume,
            current.id == output.id, current.source == output.source,
@@ -182,10 +194,10 @@ final class SystemSignals: NSObject, ObservableObject {
         guard value.isFinite, displayBrightness.hasDisplay else { return }
         let level = min(1, max(0, value))
         guard displayBrightness.setLevel(level) else {
-            controlError = "Brightness is unavailable for this display."
+            brightnessControlError = "Brightness is unavailable for this display."
             return
         }
-        controlError = nil
+        brightnessControlError = nil
         pollLevels()
         model.show(.brightness(level))
     }

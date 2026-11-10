@@ -173,7 +173,7 @@ struct SettingsView: View {
                 if isPreview { previewKeyboardAllowed = true }
                 else { signals.openAccessibilitySettings() }
             },
-            controlError: signals.controlError
+            controlError: isDisplay ? signals.brightnessControlError : signals.volumeControlError
         )
     }
 

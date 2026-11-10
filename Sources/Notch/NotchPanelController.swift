@@ -53,6 +53,7 @@ final class NotchPanelController {
     }
 
     func start() {
+        guard pointerTimer == nil else { return }
         reposition()
         let timer = Timer(timeInterval: 0.06, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.updatePointer() }
@@ -71,8 +72,11 @@ final class NotchPanelController {
 
     func stop() {
         pointerTimer?.invalidate()
+        pointerTimer = nil
         if let localMonitor { NSEvent.removeMonitor(localMonitor) }
         if let movementMonitor { NSEvent.removeMonitor(movementMonitor) }
+        localMonitor = nil
+        movementMonitor = nil
         panel.orderOut(nil)
     }
 
