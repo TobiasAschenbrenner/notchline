@@ -9,7 +9,7 @@ enum SettingsPalette {
     static let selection = Color(red: 0.63, green: 0.66, blue: 0.76).opacity(0.15)
 
     static let panel = LinearGradient(
-        colors: [Color(red: 0.19, green: 0.21, blue: 0.24), Color(red: 0.17, green: 0.18, blue: 0.23)],
+        colors: [.white.opacity(0.075), .white.opacity(0.045)],
         startPoint: .topLeading, endPoint: .bottomTrailing
     )
 }

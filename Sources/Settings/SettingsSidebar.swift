@@ -14,15 +14,7 @@ struct SettingsSidebar: View {
         .padding(.top, 54)
         .padding(.bottom, 16)
         .frame(width: 237)
-        .background {
-            ZStack {
-                SettingsPalette.window
-                RadialGradient(
-                    colors: [Color(red: 0.19, green: 0.25, blue: 0.37).opacity(0.55), .clear],
-                    center: UnitPoint(x: 1, y: 0.35), startRadius: 0, endRadius: 200
-                )
-            }
-        }
+        .background(.black.opacity(0.10))
     }
 
     private func sectionGroup(_ title: String, sections: [SettingsSection]) -> some View {

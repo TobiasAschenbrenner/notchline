@@ -3,6 +3,7 @@ import SwiftUI
 struct SettingsView: View {
     static let windowSize = CGSize(width: 666, height: 625)
 
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @ObservedObject var model: NotchModel
     @ObservedObject var media: MediaMonitor
     @ObservedObject var signals: SystemSignals
@@ -42,16 +43,10 @@ struct SettingsView: View {
                 .id(selection)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .background {
-                LinearGradient(
-                    colors: [Color(red: 0.15, green: 0.16, blue: 0.19), SettingsPalette.window],
-                    startPoint: .topLeading, endPoint: .bottomTrailing
-                )
-            }
         }
         .ignoresSafeArea(.container, edges: .top)
         .frame(width: Self.windowSize.width, height: Self.windowSize.height)
-        .background(SettingsPalette.window)
+        .background(isPreview || reduceTransparency ? SettingsPalette.window : .black.opacity(0.42))
         .font(.system(size: 14, weight: .medium))
         .foregroundStyle(SettingsPalette.text)
         .environment(\.colorScheme, .dark)

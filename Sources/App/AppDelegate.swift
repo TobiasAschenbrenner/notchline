@@ -1,5 +1,4 @@
 import AppKit
-import SwiftUI
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -107,17 +106,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func showSettings() {
         if settings == nil {
             let content = SettingsView(model: model, media: media, signals: signals, quit: { NSApp.terminate(nil) })
-            let window = NSWindow(contentViewController: NSHostingController(rootView: content))
-            window.title = "Notchline Settings"
-            window.styleMask = [.titled, .closable, .miniaturizable, .fullSizeContentView]
-            window.titleVisibility = .hidden
-            window.titlebarAppearsTransparent = true
-            window.appearance = NSAppearance(named: .darkAqua)
-            window.isMovableByWindowBackground = true
-            window.isReleasedWhenClosed = false
-            window.setContentSize(SettingsView.windowSize)
-            window.center()
-            settings = window
+            settings = SettingsWindow.make(content: content)
         }
         NSApp.activate()
         settings?.makeKeyAndOrderFront(nil)
