@@ -1,37 +1,100 @@
 # Notchline
 
-Notchline is a macOS menu-bar app for Now Playing, active-output volume, brightness and system activity.
+Notchline is a native macOS menu bar app that brings media controls and system alerts to the notch. Hover to open the player, or glance at the notch for a volume change, a battery warning, or an AirPods connection.
 
-## Open Notchline
+---
 
-1. Unzip **Notchline.zip** and move **Notchline.app** to a permanent folder.
-2. Quit any other app that draws over the notch, then open **Notchline.app**. This local build is signed for Apple silicon and targets macOS 14 or later.
-3. Use the capsule icon in the menu bar to open **Settings** or hide the notch.
+## ✨ Features
 
-Hover over the notch to open the player. Move the pointer out of the notch and its panel to close it. A slider drag can finish before the panel closes. The idle state uses the hardware notch, and the overlay stays hidden in full-screen Spaces. Sound, Display, Focus and battery share a HUD shell. AirPods alerts use a compact shell.
+- Compact and expanded Now Playing views with artwork, playback controls, a scrubber for timed media, and a live indicator for streams
+- A volume slider for the active audio output, when the device supports it
+- Notch alerts for volume, brightness, battery, Focus, and headphone connections
+- A rotating 3D AirPods Pro model and a battery ring when charge data is available
+- A notch overlay that follows desktop switches and hides on the lock screen and in full-screen Spaces
+- Settings with previews for playback and alerts, plus Liquid Glass on macOS 26 or later when built with its SDK or newer
 
-## Playback and volume
+---
 
-Notchline follows the session macOS exposes in Control Center’s Now Playing panel. Play something in Spotify or in a browser tab that exposes a system media session. The notch shows the title and available artwork. Timed playback gets a scrubber, and live streams get a Live indicator and play/pause. The Mac or AirPods button opens the active output’s volume slider.
+## 🚀 Getting Started
 
-The bundled [MediaRemote Adapter](https://github.com/ungive/mediaremote-adapter) reads the system session and sends controls locally. It uses a private macOS framework whose behavior can change with system updates. Its BSD 3-Clause license is bundled with the app and source.
+### Prerequisites
 
-## System activity
+- macOS 14 or later
+- Xcode 16 or later, or the corresponding Xcode Command Line Tools for a terminal build
 
-Compact playback and the standard system alerts share the menu-bar height. A level alert that interrupts the hovered player is slightly larger until the pointer leaves. Focus shows On or Off on the right. The brief track peek and expanded player have room below the menu bar. Settings includes sample states, brightness and volume controls, and alert preferences.
+### Build and run
 
-To show hardware key indicators in the notch, enable **Volume alerts** in **Settings → Sound** or **Brightness alerts** in **Settings → Display**. Use **Allow Keyboard Controls…** in either panel to grant Accessibility access to the current copy of Notchline. **Keyboard indicators** shows **Notchline** when the key filter is active. If macOS stops recognizing the permission after an update, remove the old entry from Accessibility and add the current app. The keys and their native indicators fall back to macOS when the corresponding alert is off, the notch is hidden, the permission is unavailable, or the device rejects the adjustment.
+```sh
+git clone https://github.com/TobiasAschenbrenner/notchline.git
+cd notchline
+./build.sh
+open build/Notchline.app
+```
 
-The system provides the available signals. **Detect Bluetooth connections** enables accessory connection alerts. The AirPods ring uses the lower reported earbud charge when both buds report. It uses the available headset charge when only one value is reported. The ring can fill in shortly after connection as Bluetooth data arrives. **Allow Focus Status** requests macOS Focus access. The brightness slider targets the built-in display.
+The script builds and ad-hoc signs the app locally. Use the capsule icon in the menu bar to open **Settings**, show or hide the notch, or quit.
 
-The AirPods Pro connection alert uses Jayrenn Reeve’s CC0 model, adapted to show just the two earbuds. [Model source](https://www.blendkit.com/asset-gallery-detail/27fb8b1c-fc79-41d4-9e2b-fef9d75329c1/)
+### Develop in Xcode
 
-## Build from source
+```sh
+open Notchline.xcodeproj
+```
 
-With macOS Command Line Tools installed, run these commands from this folder.
+Select the **Notchline** scheme and **My Mac**, then press **⌘R**. Use **Notch States** and **Notchline Settings** in Xcode Canvas to preview the interface while editing. [Notch preview](Sources/Notch/NotchView.swift) · [Settings preview](Sources/Settings/SettingsView.swift)
+
+---
+
+## ▶️ Using Notchline
+
+- **Playback.** Start media in an app or browser tab that appears in macOS Control Center’s Now Playing panel. Hover over the notch for controls. Select the output icon to show its volume slider.
+- **Sound and Display.** Enable **Volume alerts** or **Brightness alerts** in the corresponding Settings panel, then select **Allow Keyboard Controls…** to grant Accessibility access. macOS handles keys that Notchline cannot adjust. The brightness slider controls the built-in display.
+- **Connectivity.** Enable **Detect Bluetooth connections** for Bluetooth accessory alerts. The AirPods ring uses the lower reported earbud charge when both buds report. It can fill in shortly after connection as charge data arrives.
+- **Focus.** Select **Allow Focus Status…** in Settings to share Focus status with Notchline.
+
+---
+
+## 🛠 Tech Stack
+
+- **Swift, SwiftUI, and AppKit** for the notch, menu bar, settings, and animations
+- **RealityKit** for the AirPods Pro model
+- **Core Audio, IOKit, and IOBluetooth** for system activity and device controls
+- **Objective-C and Perl** for the bundled MediaRemote Adapter
+
+---
+
+## 📁 Project Structure
+
+```text
+notchline/
+├── Sources/
+│   ├── App/          App lifecycle, menu, and self-tests
+│   ├── Notch/        Overlay, playback views, layout, and animation
+│   ├── Playback/     Now Playing metadata, stream decoding, and commands
+│   ├── Settings/     Preferences, controls, and previews
+│   └── System/       Audio, display, battery, Bluetooth, and Focus
+├── Resources/        App icon and AirPods Pro model
+├── Vendor/           Bundled MediaRemote Adapter
+├── Notchline.xcodeproj
+└── build.sh          Terminal build and local signing
+```
+
+---
+
+## 🧪 Quality Checks
+
+Build and run the hardware-independent self-tests from the repository root.
 
 ```sh
 ./build.sh
-open build/Notchline.app
 build/Notchline.app/Contents/MacOS/Notchline --self-test
 ```
+
+The checks cover media parsing, hover and alert transitions, keyboard event routing, settings migration, and battery data.
+
+---
+
+## 🙌 Platform Notes and Credits
+
+- Notchline uses private macOS interfaces for Now Playing, display brightness, and Spaces detection. Those interfaces can change between macOS releases.
+- The bundled MediaRemote Adapter is by Jonas van den Berg and contributors and is distributed under the BSD 3-Clause license. [Upstream project](https://github.com/ungive/mediaremote-adapter) · [Bundled license](Vendor/MediaRemoteAdapter/LICENSE)
+- The AirPods Pro glyph adapts Jayrenn Reeve’s CC0 model to show the two earbuds. [Model source](https://www.blendkit.com/asset-gallery-detail/27fb8b1c-fc79-41d4-9e2b-fef9d75329c1/)
+- The notch and Settings designs take inspiration from [Alcove](https://tryalcove.com/).
