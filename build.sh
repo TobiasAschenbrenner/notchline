@@ -1,6 +1,11 @@
 #!/bin/bash
 set -euo pipefail
 
+if (( $# > 1 )) || [[ $# -eq 1 && "$1" != --zip ]]; then
+    printf 'Usage: %s [--zip]\n' "${0##*/}" >&2
+    exit 2
+fi
+
 project_dir="$(cd -- "$(dirname -- "$0")" && pwd)"
 build_dir="$project_dir/build"
 arch="$(uname -m)"
@@ -51,6 +56,15 @@ xcrun --sdk macosx swiftc -swift-version 5 -O -whole-module-optimization \
     "${swift_sources[@]}" -o "$app/Contents/MacOS/Notchline"
 codesign --force --sign - "$app"
 codesign --verify --deep --strict "$app"
+
+if [[ "${1:-}" == --zip ]]; then
+    version="$(plutil -extract CFBundleShortVersionString raw -o - "$app/Contents/Info.plist")"
+    archive="Notchline-$version-macos-$arch.zip"
+    ditto -c -k --norsrc --keepParent "$app" "$staging/$archive"
+    mv -f -- "$staging/$archive" "$build_dir/$archive"
+    printf '%s\n' "$build_dir/$archive"
+    exit 0
+fi
 
 if [[ -e "$build_dir/Notchline.app" ]]; then
     mv "$build_dir/Notchline.app" "$staging/Previous.app"

@@ -17,12 +17,10 @@ Notchline is a native macOS menu bar app that brings media controls and system a
 
 ## 🚀 Getting Started
 
-### Prerequisites
+### Build from source
 
 - macOS 14 or later
 - Xcode 16 or later, or the corresponding Xcode Command Line Tools for a terminal build
-
-### Build and run
 
 ```sh
 git clone https://github.com/TobiasAschenbrenner/notchline.git
@@ -32,6 +30,12 @@ open build/Notchline.app
 ```
 
 The script builds and ad-hoc signs the app locally. Use the capsule icon in the menu bar to open **Settings**, show or hide the notch, or quit.
+
+### Package a ZIP
+
+Run `./build.sh --zip` to create a distributable ZIP in `build/` for the current architecture. Extract the ZIP and move **Notchline.app** to **Applications**.
+
+The packaged app is ad-hoc signed and has not been notarized by Apple, so macOS may show a warning on first launch if you download the ZIP. [Apple’s guidance for opening downloaded apps](https://support.apple.com/en-au/102445)
 
 ### Develop in Xcode
 
