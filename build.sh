@@ -39,7 +39,16 @@ ln -s Versions/Current/Resources "$framework/Resources"
 xcrun --sdk macosx clang -dynamiclib -fobjc-arc -O2 -arch "$arch" -isysroot "$sdk"     -mmacosx-version-min=14.0 -I"$adapter/include" -I"$adapter/src"     -framework Foundation -framework AppKit -framework UniformTypeIdentifiers     "$adapter"/src/{adapter,private,utility}/*.m     -o "$framework/Versions/A/MediaRemoteAdapter"
 codesign --force --sign - "$framework"
 
-xcrun --sdk macosx swiftc -swift-version 5 -O -whole-module-optimization     -target "$arch-apple-macosx14.0" -sdk "$sdk" -module-cache-path "$build_dir/module-cache"     -framework AppKit -framework SwiftUI -framework CoreAudio     -framework IOKit -framework IOBluetooth -framework AudioToolbox -framework Intents     "$project_dir"/Sources/*.swift -o "$app/Contents/MacOS/Notchline"
+swift_sources=()
+while IFS= read -r -d '' source; do
+    swift_sources+=("$source")
+done < <(find "$project_dir/Sources" -name '*.swift' -type f -print0)
+
+xcrun --sdk macosx swiftc -swift-version 5 -O -whole-module-optimization \
+    -target "$arch-apple-macosx14.0" -sdk "$sdk" -module-cache-path "$build_dir/module-cache" \
+    -framework AppKit -framework SwiftUI -framework CoreAudio \
+    -framework IOKit -framework IOBluetooth -framework AudioToolbox -framework Intents \
+    "${swift_sources[@]}" -o "$app/Contents/MacOS/Notchline"
 codesign --force --sign - "$app"
 codesign --verify --deep --strict "$app"
 
