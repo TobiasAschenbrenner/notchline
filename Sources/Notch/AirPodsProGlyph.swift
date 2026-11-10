@@ -3,6 +3,8 @@ import RealityKit
 import SwiftUI
 
 struct AirPodsProGlyph: View {
+    private static let openingAngle: Float = .pi
+    private static let openingHoldDuration: TimeInterval = 0.25
     private static let revolutionDuration: TimeInterval = 6
     private static let model: Entity? = {
         guard MTLCreateSystemDefaultDevice() != nil,
@@ -11,17 +13,19 @@ struct AirPodsProGlyph: View {
     }()
 
     let reduceMotion: Bool
-    @ViewState private var startedAt = Date.now
+    @ViewState private var startedAt: Date?
 
     var body: some View {
         if let model = Self.model {
             TimelineView(.animation(minimumInterval: 1.0 / 30, paused: reduceMotion)) { context in
-                let elapsed = max(0, context.date.timeIntervalSince(startedAt))
-                let fraction = elapsed.truncatingRemainder(dividingBy: Self.revolutionDuration) / Self.revolutionDuration
-                let turn = reduceMotion ? 0 : Float(fraction) * 2 * .pi
+                let elapsed = context.date.timeIntervalSince(startedAt ?? context.date)
+                let rotationTime = max(0, elapsed - Self.openingHoldDuration)
+                let fraction = rotationTime.truncatingRemainder(dividingBy: Self.revolutionDuration) / Self.revolutionDuration
+                let turn = Self.openingAngle + (reduceMotion ? 0 : Float(fraction) * 2 * .pi)
                 AirPodsProScene(model: model, turn: turn)
             }
             .frame(width: 24, height: 22)
+            .onAppear { startedAt = .now }
         } else {
             Image(systemName: "airpodspro")
         }
