@@ -118,6 +118,7 @@ enum NotchlineSelfTests {
             ("Keyboard filter owns complete presses and passes unsupported keys to macOS", levelKeyRouting()),
             ("Legacy alerts preference migrates and volume and brightness stay independent", independentLevelAlerts()),
             ("System media frame and elapsed position", track?.title == "Example" && track?.position(at: now.addingTimeInterval(20)) == 60),
+            ("Media stream handles split frames and discards oversized lines", mediaStreamFraming(frame: frame, now: now)),
             ("Live, timed video and unavailable timelines", liveTrack?.isLive == true && liveTrack?.canSeek == false && liveTrack?.canSkip == false
                 && browserTrack?.canSeek == true && browserTrack?.canSkip == false && browserTrack?.fallbackArtwork == "play.rectangle.fill"
                 && unknownTrack?.isLive == false && unknownTrack?.canSeek == false),
@@ -126,6 +127,23 @@ enum NotchlineSelfTests {
         ]
         for (name, passed) in checks { print("\(passed ? "PASS" : "FAIL")  \(name)") }
         return checks.allSatisfy { $0.1 }
+    }
+
+    private static func mediaStreamFraming(frame: String, now: Date) -> Bool {
+        let bytes = Data(frame.utf8)
+        let midpoint = bytes.count / 2
+        var stream = MediaRemoteAdapter.StreamDecoder(maximumLineBytes: bytes.count)
+        guard stream.consume(bytes.prefix(midpoint), now: now).isEmpty else { return false }
+
+        var remainder = Data(bytes.dropFirst(midpoint))
+        remainder.append(contentsOf: "\n{\"type\":\"data\",\"diff\":false,\"payload\":{}}\n".utf8)
+        let split = stream.consume(remainder, now: now)
+        guard split.count == 2, split[0].track?.title == "Example", split[1].track == nil else { return false }
+
+        let oversized = Data(repeating: 0x20, count: bytes.count + 1)
+        guard stream.consume(oversized, now: now).isEmpty else { return false }
+        let recovered = stream.consume(Data("\(frame)\n\(frame)\n".utf8), now: now)
+        return recovered.count == 1 && recovered.first?.track?.title == "Example"
     }
 
     private static func headphonePlaybackHandoff(track: MediaTrack?, geometry: NotchGeometry) -> Bool {

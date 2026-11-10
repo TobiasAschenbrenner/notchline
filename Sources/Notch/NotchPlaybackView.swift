@@ -8,7 +8,7 @@ struct NotchPlaybackView: View {
     let cameraHeight: CGFloat
     let volumeRowProgress: Double
     @Binding var isVolumeControlOpen: Bool
-    let sendCommand: (MediaMonitor.Command) -> Void
+    let sendCommand: (PlaybackCommand) -> Void
 
     var body: some View {
         VStack(spacing: 12) {

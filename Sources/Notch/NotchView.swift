@@ -120,7 +120,7 @@ struct NotchView: View {
         .frame(width: geometry.panelWidth, height: geometry.panelHeight, alignment: .top)
     }
 
-    private func sendPlaybackCommand(_ command: MediaMonitor.Command) {
+    private func sendPlaybackCommand(_ command: PlaybackCommand) {
         if !sample { media.control(command) }
     }
 }

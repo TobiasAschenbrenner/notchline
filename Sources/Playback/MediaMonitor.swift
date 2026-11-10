@@ -4,10 +4,6 @@ import SwiftUI
 
 @MainActor
 final class MediaMonitor: ObservableObject {
-    enum Command {
-        case previous, toggle, next, seek(Double)
-    }
-
     @Published private(set) var enabled = UserDefaults.standard.object(forKey: "systemMediaEnabled") as? Bool ?? true
     @Published private(set) var status = "Waiting for macOS Now Playing"
     @Published private(set) var image: NSImage?
@@ -16,7 +12,7 @@ final class MediaMonitor: ObservableObject {
     private let model: NotchModel
     private var streamProcess: Process?
     private var streamPipe: Pipe?
-    private var pendingStreamBytes = Data()
+    private var streamDecoder = MediaRemoteAdapter.StreamDecoder()
     private var retryCount = 0
     private var retryTask: Task<Void, Never>?
     private var artworkData: Data?
@@ -33,7 +29,7 @@ final class MediaMonitor: ObservableObject {
 
     func start() {
         guard enabled, streamProcess == nil else { return }
-        guard let process = MediaRemoteAdapter.makeProcess(arguments: ["stream", "--no-diff", "--micros", "--debounce=65"]) else {
+        guard let process = MediaRemoteAdapter.makeStreamProcess() else {
             status = "The macOS Now Playing adapter is missing"
             return
         }
@@ -68,23 +64,9 @@ final class MediaMonitor: ObservableObject {
         update(nil)
     }
 
-    func control(_ command: Command) {
-        guard enabled, let track = model.track, commandProcess == nil else { return }
-        let arguments: [String]
-        switch command {
-        case .previous:
-            guard track.canSkip else { return }
-            arguments = ["send", "5"]
-        case .toggle: arguments = ["send", "2"]
-        case .next:
-            guard track.canSkip else { return }
-            arguments = ["send", "4"]
-        case .seek(let position):
-            guard track.canSeek, position.isFinite else { return }
-            let micros = Int64(min(track.duration, max(0, position)) * 1_000_000)
-            arguments = ["seek", String(micros)]
-        }
-        guard let process = MediaRemoteAdapter.makeProcess(arguments: arguments) else { return }
+    func control(_ command: PlaybackCommand) {
+        guard enabled, let track = model.track, commandProcess == nil,
+              let process = MediaRemoteAdapter.makeControlProcess(for: command, track: track) else { return }
         process.standardOutput = FileHandle.nullDevice
         process.terminationHandler = { [weak self] process in
             DispatchQueue.main.async {
@@ -101,7 +83,7 @@ final class MediaMonitor: ObservableObject {
         streamPipe?.fileHandleForReading.readabilityHandler = nil
         streamPipe = nil
         streamProcess = nil
-        pendingStreamBytes.removeAll(keepingCapacity: false)
+        streamDecoder = .init()
     }
 
     private func streamEnded(_ process: Process) {
@@ -120,17 +102,11 @@ final class MediaMonitor: ObservableObject {
     }
 
     private func receive(_ data: Data) {
-        pendingStreamBytes.append(data)
-        while let boundary = pendingStreamBytes.firstIndex(of: 10) {
-            let line = pendingStreamBytes.prefix(upTo: boundary)
-            if line.count <= 8_000_000, let result = MediaRemoteAdapter.decode(Data(line), now: .now) {
-                retryCount = 0
-                update(result.track)
-                status = result.track == nil ? "Waiting for macOS Now Playing" : "Connected to macOS Now Playing"
-            }
-            pendingStreamBytes.removeSubrange(...boundary)
+        for snapshot in streamDecoder.consume(data, now: .now) {
+            retryCount = 0
+            update(snapshot.track)
+            status = snapshot.track == nil ? "Waiting for macOS Now Playing" : "Connected to macOS Now Playing"
         }
-        if pendingStreamBytes.count > 8_000_000 { pendingStreamBytes.removeAll() }
     }
 
     private func update(_ track: MediaTrack?) {
