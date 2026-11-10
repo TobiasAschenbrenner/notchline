@@ -15,8 +15,11 @@ struct NotchAlertView: View {
         let inset = NotchHUDMetrics.wingInset
         return HStack(spacing: 0) {
             HStack(spacing: 6) {
-                if case .headphones(_, let symbol, true, _) = alert {
-                    HeadphoneGlyph(symbol: symbol, reduceMotion: reduceMotion)
+                if case .headphones(let name, "airpodspro", true, _) = alert {
+                    AirPodsProGlyph(reduceMotion: reduceMotion)
+                        .id(name)
+                } else if case .headphones(_, "airpods", true, _) = alert, !reduceMotion {
+                    AirPodsGlyph()
                 } else {
                     Image(systemName: alert.symbol(for: output))
                 }
@@ -66,26 +69,19 @@ struct NotchAlertView: View {
     }
 }
 
-private struct HeadphoneGlyph: View {
-    let symbol: String
-    let reduceMotion: Bool
+private struct AirPodsGlyph: View {
     @ViewState private var startedAt = Date.now
 
     var body: some View {
-        if !reduceMotion, symbol == "airpodspro" || symbol == "airpods" {
-            TimelineView(.animation(minimumInterval: 1.0 / 30)) { context in
-                let angle = context.date.timeIntervalSince(startedAt) * .pi / 1.45
-                let spread = cos(angle)
-                let stem = symbol == "airpodspro" ? "airpodpro" : "airpod"
-                ZStack {
-                    bud(stem + ".left", angle: angle, x: -4.5 * spread)
-                        .zIndex(sin(angle) > 0 ? 1 : 0)
-                    bud(stem + ".right", angle: -angle, x: 4.5 * spread)
-                }
-                .frame(width: 19, height: 17)
+        TimelineView(.animation(minimumInterval: 1.0 / 30)) { context in
+            let angle = context.date.timeIntervalSince(startedAt) * .pi / 1.45
+            let spread = cos(angle)
+            ZStack {
+                bud("airpod.left", angle: angle, x: -4.5 * spread)
+                    .zIndex(sin(angle) > 0 ? 1 : 0)
+                bud("airpod.right", angle: -angle, x: 4.5 * spread)
             }
-        } else {
-            Image(systemName: symbol)
+            .frame(width: 19, height: 17)
         }
     }
 
