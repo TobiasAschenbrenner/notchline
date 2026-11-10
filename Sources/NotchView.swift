@@ -3,6 +3,14 @@ import SwiftUI
 
 typealias ViewState<Value> = SwiftUI.State<Value>
 
+#if DEBUG
+#Preview("Notch States") {
+    GalleryView()
+        .frame(width: 515)
+        .padding(16)
+}
+#endif
+
 struct NotchContour: Shape {
     var shoulder: CGFloat
     var corner: CGFloat

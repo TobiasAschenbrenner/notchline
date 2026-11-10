@@ -104,7 +104,7 @@ struct SettingsView: View {
 
 }
 
-private struct GalleryView: View {
+struct GalleryView: View {
     enum Scene: String, CaseIterable, Identifiable {
         case playing = "Compact"
         case playback = "Playback"
