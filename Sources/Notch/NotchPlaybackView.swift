@@ -11,98 +11,105 @@ struct NotchPlaybackView: View {
     let sendCommand: (MediaMonitor.Command) -> Void
 
     var body: some View {
-        VStack(spacing: 11) {
+        VStack(spacing: 12) {
             if let track {
-                HStack(spacing: 13) {
-                    Color.clear.frame(width: 56, height: 56)
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(track.title).font(.system(size: 15, weight: .semibold)).lineLimit(1)
+                header {
+                    VStack(alignment: .leading, spacing: 1) {
+                        PlaybackTitle(title: track.title)
                         if !track.artist.isEmpty {
-                            Text(track.artist).font(.system(size: 13, weight: .medium))
+                            Text(track.artist).font(.system(size: 12))
                                 .foregroundStyle(.white.opacity(0.55)).lineLimit(1)
                         }
                     }
-                    .offset(y: max(0, cameraHeight - 25))
-                    Spacer(minLength: 5)
-                    Color.clear.frame(width: PlaybackWaveform.width, height: 14)
                 }
                 PlaybackScrubber(track: track) { sendCommand(.seek($0)) }
-                transport(track)
+                    .padding(.horizontal, 28)
             } else {
-                HStack(spacing: 13) {
-                    Color.clear.frame(width: 56, height: 56)
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text("Nothing playing").font(.system(size: 15, weight: .semibold))
-                        Text(status).font(.system(size: 12)).foregroundStyle(.white.opacity(0.55))
+                header {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("Nothing playing").font(.system(size: 13, weight: .medium))
+                        Text(status).font(.system(size: 12)).foregroundStyle(.white.opacity(0.55)).lineLimit(1)
                     }
-                    Spacer()
                 }
-                Color.clear.frame(height: 18)
-                transport(nil)
+                Color.clear.frame(height: 16)
             }
+            transport(track)
             if volumeRowProgress > 0 {
                 volumeControl
-                    .padding(.horizontal, 9)
-                    .padding(.top, 6)
+                    .padding(.horizontal, 48)
+                    .frame(height: 16)
                     .modifier(NotchDetail(progress: volumeRowProgress, blur: 3, y: -6))
                     .allowsHitTesting(volumeRowProgress > 0.8)
             }
         }
-        .padding(.horizontal, 25)
-        .padding(.top, 17)
+        .padding(.top, PlaybackHeaderLayout.topInset)
         .frame(maxWidth: .infinity, alignment: .top)
+    }
+
+    private func header<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        HStack(spacing: 12) {
+            Color.clear.frame(width: PlaybackHeaderLayout.artworkWidth)
+            content()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .offset(y: max(0, cameraHeight - 27.5))
+            Color.clear.frame(width: PlaybackWaveform.width)
+        }
+        .frame(height: PlaybackHeaderLayout.artworkWidth)
+        .padding(.leading, PlaybackHeaderLayout.artworkInset)
+        .padding(.trailing, PlaybackHeaderLayout.waveformInset)
     }
 
     private func transport(_ track: MediaTrack?) -> some View {
         HStack(spacing: 0) {
-            Color.clear.frame(width: 31, height: 1)
+            Color.clear.frame(width: IconControl.width, height: 1)
             Spacer(minLength: 0)
-            HStack(spacing: 23) {
-                IconControl(icon: "backward.fill", label: "Previous", size: 20) {
+            HStack(spacing: 24) {
+                IconControl(icon: "backward.fill", label: "Previous", size: 18) {
                     sendCommand(.previous)
                 }
                 .disabled(track?.canSkip == false)
-                .opacity(track?.canSkip == false ? 0.36 : 1)
+                .foregroundStyle(.white.opacity(track?.canSkip == false ? 0.28 : 0.52))
                 IconControl(icon: track?.playing == true ? "pause.fill" : "play.fill",
-                            label: track?.playing == true ? "Pause" : "Play", size: 23) {
+                            label: track?.playing == true ? "Pause" : "Play", size: 27) {
                     sendCommand(.toggle)
                 }
-                IconControl(icon: "forward.fill", label: "Next", size: 20) {
+                IconControl(icon: "forward.fill", label: "Next", size: 18) {
                     sendCommand(.next)
                 }
                 .disabled(track?.canSkip == false)
-                .opacity(track?.canSkip == false ? 0.36 : 1)
+                .foregroundStyle(.white.opacity(track?.canSkip == false ? 0.28 : 0.52))
             }
             .disabled(track == nil)
             .opacity(track == nil ? 0.36 : 1)
             Spacer(minLength: 0)
             IconControl(icon: output?.playerIcon ?? "laptopcomputer",
-                        label: "Volume for \(output?.routeName ?? "current output")", size: 18) {
+                        label: "Volume for \(output?.routeName ?? "current output")",
+                        size: 18, highlighted: isVolumeControlOpen) {
                 isVolumeControlOpen.toggle()
             }
-            .foregroundStyle(.white.opacity(isVolumeControlOpen ? 1 : 0.55))
+            .foregroundStyle(.white.opacity(isVolumeControlOpen ? 0.72 : 0.55))
+            .accessibilityValue(isVolumeControlOpen ? Text("Expanded") : Text("Collapsed"))
         }
-        .frame(height: 36)
+        .padding(.horizontal, 32)
+        .frame(height: 42)
     }
 
     @ViewBuilder private var volumeControl: some View {
         if let output, let outputVolume {
-            HStack(spacing: 10) {
-                Image(systemName: "speaker.fill").frame(width: 15)
+            HStack(spacing: 12) {
+                Image(systemName: "speaker.fill").frame(width: 12)
                 OutputVolumeRail(
                     level: outputVolume,
                     label: "Volume for \(output.routeName)"
                 )
-                Image(systemName: "speaker.wave.3.fill").frame(width: 15)
+                Image(systemName: "speaker.wave.2.fill").frame(width: 12)
             }
             .font(.system(size: 11, weight: .medium))
-            .foregroundStyle(.white.opacity(0.68))
-            .frame(height: 25)
+            .foregroundStyle(.white.opacity(0.48))
         } else {
             Text("Volume unavailable for this output")
                 .font(.system(size: 10))
                 .foregroundStyle(.white.opacity(0.6))
-                .frame(height: 25)
         }
     }
 }
@@ -113,7 +120,7 @@ private struct OutputVolumeRail: View {
 
     var body: some View {
         GeometryReader { proxy in
-            LevelMeter(value: level, height: 4, trackOpacity: 0.20, fillOpacity: 0.57)
+            LevelMeter(value: level, height: 6, trackOpacity: 0.16, fillOpacity: 0.52)
                 .frame(maxHeight: .infinity)
                 .contentShape(Rectangle())
                 .gesture(DragGesture(minimumDistance: 0)
@@ -128,16 +135,20 @@ private struct OutputVolumeRail: View {
 }
 
 private struct IconControl: View {
+    static let width: CGFloat = 48
+
     let icon: String
     let label: String
     let size: CGFloat
+    var highlighted = false
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             Image(systemName: icon)
                 .font(.system(size: size, weight: .semibold))
-                .frame(width: 31, height: 30)
+                .frame(width: Self.width, height: 46)
+                .background(.white.opacity(highlighted ? 0.10 : 0), in: RoundedRectangle(cornerRadius: 15))
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

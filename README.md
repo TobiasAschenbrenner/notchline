@@ -8,7 +8,7 @@ Notchline is a macOS menu-bar app for Now Playing, active-output volume, brightn
 2. Quit any other app that draws over the notch, then open **Notchline.app**. This local build is signed for Apple silicon and targets macOS 14 or later.
 3. Use the capsule icon in the menu bar to open **Settings** or hide the notch.
 
-Hover over the notch to open the player. Move the pointer out of the notch and its panel to close it. A slider drag can finish before the panel closes. The idle state uses the hardware notch, and the overlay stays hidden in full-screen Spaces. Sound, Display, Focus and battery share a HUD shell. AirPods uses the narrower playback width.
+Hover over the notch to open the player. Move the pointer out of the notch and its panel to close it. A slider drag can finish before the panel closes. The idle state uses the hardware notch, and the overlay stays hidden in full-screen Spaces. Sound, Display, Focus and battery share a HUD shell. AirPods alerts use a compact shell.
 
 ## Playback and volume
 

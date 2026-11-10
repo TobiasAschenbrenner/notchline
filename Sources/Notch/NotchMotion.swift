@@ -97,7 +97,7 @@ struct NotchMotion {
 
         func shape(at time: Double) -> Double {
             if self == .playerOpen {
-                // The visible contour peaks at about 260 ms with 9% overshoot.
+                // The opening spring peaks at about 260 ms with 9% overshoot.
                 return 1 - exp(-9.3 * time) * (cos(12.1 * time) + (9.3 / 12.1) * sin(12.1 * time))
             }
             let rate: Double
@@ -133,8 +133,10 @@ struct NotchMotion {
             }
 
             var result = from
+            // Preserve the spring across the width while softening the bounce down the screen.
+            let heightProgress = curve == .playerOpen && progress > 1 ? 1 + (progress - 1) * 0.35 : progress
             result.size = CGSize(width: mix(from.size.width, to.size.width, progress),
-                                 height: mix(from.size.height, to.size.height, progress))
+                                 height: mix(from.size.height, to.size.height, heightProgress))
             result.contour = NotchContour(shoulder: mix(from.contour.shoulder, to.contour.shoulder, progress),
                                           corner: mix(from.contour.corner, to.contour.corner, progress))
             result.alert = to.alert ?? from.alert

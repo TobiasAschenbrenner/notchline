@@ -15,7 +15,8 @@ struct MediaTrack: Equatable {
     let canSkip: Bool
 
     var canSeek: Bool { !isLive && duration > 0 }
-    var fallbackArtwork: String { Self.browsers.contains(sourceBundleID) ? "play.rectangle.fill" : "music.note" }
+    var isFromBrowser: Bool { Self.browsers.contains(sourceBundleID) }
+    var fallbackArtwork: String { isFromBrowser ? "play.rectangle.fill" : "music.note" }
 
     private static let browsers: Set<String> = [
         "com.apple.Safari", "com.google.Chrome", "com.microsoft.edgemac", "com.brave.Browser",

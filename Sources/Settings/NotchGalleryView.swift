@@ -53,7 +53,10 @@ struct NotchGalleryView: View {
 
         init() {
             model.output = SoundOutput(id: 0, source: nil, name: "AirPods Pro", transport: nil, volume: 0.38, muted: false)
-            model.updateTrack(MediaTrack(sampleAt: .now))
+            let video = MediaTrack.Payload(title: "Night Crossing | A Journey Through the City After Dark", artist: "Northline",
+                                           bundleIdentifier: "com.apple.Safari", playing: true,
+                                           durationMicros: 226_000_000, elapsedTimeMicros: 137_000_000)
+            model.updateTrack(MediaTrack(payload: video, now: .now))
         }
 
         func show(_ scene: Scene) {

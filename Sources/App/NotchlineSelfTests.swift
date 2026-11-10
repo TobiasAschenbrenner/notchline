@@ -57,7 +57,7 @@ enum NotchlineSelfTests {
         let matchesAlertGeometry = alerts.allSatisfy { alert in
             model.show(alert, isPreview: true)
             let presentation = NotchPresentation(model: model)
-            let expected = alert.kind == .headphones ? geometry.size(for: .compact) : standardHUD
+            let expected = alert.kind == .headphones ? CGSize(width: geometry.cameraWidth + 79, height: geometry.cameraHeight) : standardHUD
             return presentation == .alert(alert.kind) && geometry.size(for: presentation) == expected
         }
 
@@ -99,6 +99,7 @@ enum NotchlineSelfTests {
             ("Player content reveals during expansion and geometry overshoots",
                 playerMotion.frame(at: 0.04).player == 0 && playerMotion.frame(at: 0.16).player > 0.7
                 && playerPeak.size.width > playerSize.width && playerPeak.size.height > playerSize.height
+                && playerPeak.size.height < playerSize.height + 6
                 && playerMotion.frame(at: 0.6).size == playerSize),
             ("Hover-held level alert survives pointer exit and repeat inputs",
                 hoveredHUD == .alert(.volume, hovered: true) && keepsLevelOnExit && stillSameHUD

@@ -14,9 +14,10 @@ enum NotchPresentation: Equatable {
     var contour: NotchContour {
         switch self {
         case .idle: return .init(shoulder: 2, corner: 9)
-        case .compact, .alert: return .init(shoulder: NotchHUDMetrics.shoulder, corner: NotchHUDMetrics.corner)
-        case .peek: return .init(shoulder: 7, corner: 14)
-        case .expanded, .volumeControl: return .init(shoulder: 15, corner: 28)
+        case .compact: return .init(shoulder: 5, corner: 11)
+        case .alert: return .init(shoulder: NotchHUDMetrics.shoulder, corner: NotchHUDMetrics.corner)
+        case .peek: return .init(shoulder: 5, corner: 14)
+        case .expanded, .volumeControl: return .init(shoulder: 15, corner: 38)
         }
     }
 

@@ -12,7 +12,7 @@ struct PlaybackScrubber: View {
                 if track.canSeek {
                     Text(time(position)).frame(width: 36, alignment: .leading)
                     GeometryReader { proxy in
-                        LevelMeter(value: position / track.duration, height: 5, fillOpacity: 0.55)
+                        LevelMeter(value: position / track.duration, height: 6, fillOpacity: 0.52)
                             .frame(maxHeight: .infinity)
                             .contentShape(Rectangle())
                             .gesture(DragGesture(minimumDistance: 0)
