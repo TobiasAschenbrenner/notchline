@@ -12,7 +12,7 @@ struct NotchAlertView: View {
         let height = cameraHeight + min(6, max(0, frame.size.height - cameraHeight))
         let railWidth = NotchHUDMetrics.railWidth
             + (NotchHUDMetrics.hoveredRailWidth - NotchHUDMetrics.railWidth) * (height - cameraHeight) / 6
-        let inset = NotchHUDMetrics.wingInset
+        let inset = alert.kind == .headphones ? NotchHUDMetrics.headphoneWingInset : NotchHUDMetrics.wingInset
         return HStack(spacing: 0) {
             HStack(spacing: 6) {
                 if case .headphones(let name, "airpodspro", true, _) = alert {
@@ -54,18 +54,29 @@ struct NotchAlertView: View {
                 .contentTransition(.opacity)
                 .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: label)
         } else if case .headphones(_, _, true, let battery) = alert {
-            ZStack {
-                if let battery {
-                    Circle().strokeBorder(.white.opacity(0.23), lineWidth: 1.5)
-                    Circle().trim(from: 0, to: Double(battery) / 100)
-                        .stroke(Color.green, style: StrokeStyle(lineWidth: 1.5, lineCap: .round))
-                        .rotationEffect(.degrees(-90))
-                }
-            }
-            .frame(width: 12, height: 12)
-            .padding(.trailing, 3)
-            .animation(reduceMotion ? nil : .easeOut(duration: 0.16), value: battery)
+            HeadphoneBatteryRing(battery: battery)
+                .animation(reduceMotion ? nil : .easeOut(duration: 0.16), value: battery)
         }
+    }
+}
+
+private struct HeadphoneBatteryRing: View {
+    let battery: Int?
+
+    var body: some View {
+        let diameter: CGFloat = 17
+        let stroke: CGFloat = 2.5
+        let green = Color(red: 0.26, green: 0.85, blue: 0.47)
+        let ring = Circle().inset(by: stroke / 2)
+        ZStack {
+            if let battery {
+                ring.stroke(green.opacity(0.26), lineWidth: stroke)
+                ring.trim(from: 0, to: Double(battery) / 100)
+                    .stroke(green, style: StrokeStyle(lineWidth: stroke, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+            }
+        }
+        .frame(width: diameter, height: diameter)
     }
 }
 

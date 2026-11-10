@@ -13,8 +13,7 @@ struct NotchGeometry: Equatable {
     func size(for presentation: NotchPresentation) -> CGSize {
         switch presentation {
         case .idle: return CGSize(width: cameraWidth, height: cameraHeight)
-        case .compact: return CGSize(width: compactPlaybackWidth, height: cameraHeight)
-        case .alert(.headphones, _): return CGSize(width: cameraWidth + 79, height: cameraHeight)
+        case .compact, .alert(.headphones, _): return CGSize(width: compactPlaybackWidth, height: cameraHeight)
         case .alert(_, let hovered):
             return CGSize(width: NotchHUDMetrics.width(cameraWidth: cameraWidth, hovered: hovered),
                           height: cameraHeight + (hovered ? 6 : 0))

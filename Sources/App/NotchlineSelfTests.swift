@@ -57,7 +57,7 @@ enum NotchlineSelfTests {
         let matchesAlertGeometry = alerts.allSatisfy { alert in
             model.show(alert, isPreview: true)
             let presentation = NotchPresentation(model: model)
-            let expected = alert.kind == .headphones ? CGSize(width: geometry.cameraWidth + 79, height: geometry.cameraHeight) : standardHUD
+            let expected = alert.kind == .headphones ? geometry.size(for: .compact) : standardHUD
             return presentation == .alert(alert.kind) && geometry.size(for: presentation) == expected
         }
 
@@ -92,6 +92,7 @@ enum NotchlineSelfTests {
             ("Hover dwell, exit and drag hold", waitsToOpen && opens && keepsOpen && waitsToClose && closes),
             ("AirPods bud charge, case exclusion and late update", battery == 65 && absentBattery == nil && updatesCharge),
             ("Standard HUD and AirPods compact geometry", matchesAlertGeometry && standardHUD.width < geometry.panelWidth),
+            ("Headphone alert hands off to and from compact playback", headphonePlaybackHandoff(track: track, geometry: geometry)),
             ("White HUD rail, device icon and volume bounds", NotchHUDMetrics.railWidth == 68 && NotchHUDMetrics.railHeight == 4
                 && alerts[0].symbol(for: airPods) == "airpodspro"
                 && initialAlert?.symbol(for: airPods) == "airpodspro"
@@ -124,6 +125,29 @@ enum NotchlineSelfTests {
         ]
         for (name, passed) in checks { print("\(passed ? "PASS" : "FAIL")  \(name)") }
         return checks.allSatisfy { $0.1 }
+    }
+
+    private static func headphonePlaybackHandoff(track: MediaTrack?, geometry: NotchGeometry) -> Bool {
+        let model = NotchModel()
+        model.setExpanded(true)
+        model.updateTrack(track)
+        model.setExpanded(false)
+        guard NotchPresentation(model: model) == .compact else { return false }
+
+        let compact = NotchFrame(.compact, geometry: geometry)
+        model.show(.headphones("AirPods Pro", "airpodspro", connected: true, battery: 45), isPreview: true)
+        let opening = NotchMotion(from: compact, to: NotchScene(model: model), geometry: geometry, at: 0)
+        let connected = opening.frame(at: opening.endsAt)
+
+        model.dismissAlert()
+        let closing = NotchMotion(from: connected, to: NotchScene(model: model), geometry: geometry, at: 6)
+        let restored = closing.frame(at: closing.endsAt)
+        let swaps = [opening.frame(at: NotchMotion.handoffDuration), closing.frame(at: 6 + NotchMotion.handoffDuration)]
+
+        return connected.size == compact.size && connected.hud == 1 && connected.media == 0
+            && connected.contour.shoulder == compact.contour.shoulder && connected.contour.corner == compact.contour.corner
+            && swaps.allSatisfy { $0.size.width < compact.size.width && $0.media == 0 && $0.hud == 0 }
+            && restored.size == compact.size && restored.hud == 0 && restored.media == 1 && model.track == track
     }
 
     private static func independentLevelAlerts() -> Bool {
