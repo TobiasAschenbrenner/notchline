@@ -116,7 +116,7 @@ extern CFStringRef MRMediaRemoteGetNowPlayingInfo;
 extern CFStringRef MRMediaRemoteGetNowPlayingApplicationIsPlaying;
 
 typedef void (*MRMediaRemoteRegisterForNowPlayingNotifications_t)(dispatch_queue_t queue);
-typedef void (*MRMediaRemoteUnregisterForNowPlayingNotifications_t)();
+typedef void (*MRMediaRemoteUnregisterForNowPlayingNotifications_t)(void);
 
 typedef void (^MRMediaRemoteGetNowPlayingInfoCompletion_t)(NSDictionary *information);
 typedef void (^MRMediaRemoteGetNowPlayingApplicationPIDCompletion_t)(int PID);

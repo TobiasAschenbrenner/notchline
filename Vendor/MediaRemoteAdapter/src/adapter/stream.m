@@ -116,7 +116,7 @@ typedef struct MetadataStats {
     int identifyingTrackKeysChanged;
 } MetadataStats;
 
-static MetadataStats createMetadataStats() {
+static MetadataStats createMetadataStats(void) {
     MetadataStats stats = {
         .trackTitleChanged = NO,
         .identifyingTrackKeysIdentical = 0,
@@ -144,7 +144,7 @@ static MetadataStats compareIdentifyingTrackKeys(NSDictionary *prev,
     return stats;
 }
 
-extern void adapter_stream() {
+extern void adapter_stream(void) {
 
     // Get ADAPTER_TEST_MODE as a boolean and set BOOL isTestMode
     BOOL isTestMode = NO;
@@ -208,7 +208,7 @@ extern void adapter_stream() {
       printData(data, !no_diff, human_readable);
     };
 
-    void (^directHandle)() = ^() {
+    void (^directHandle)(void) = ^{
       if (allMandatoryPayloadKeysSet(liveData, allow_missing_title)) {
           if (human_readable) {
               NSMutableDictionary *shallowClone =
@@ -247,15 +247,15 @@ extern void adapter_stream() {
       }
     };
 
-    void (^handle)() = ^() {
+    void (^handle)(void) = ^{
       internalHandle(false);
     };
 
-    void (^handleWithUpdatedStats)() = ^() {
+    void (^handleWithUpdatedStats)(void) = ^{
       internalHandle(true);
     };
 
-    void (^requestNowPlayingApplicationPID)() = ^{
+    void (^requestNowPlayingApplicationPID)(void) = ^{
       g_mediaRemote.getNowPlayingApplicationPID(
           g_serialdispatchQueue, ^(int pid) {
             if (pid == 0) {
@@ -276,7 +276,7 @@ extern void adapter_stream() {
           });
     };
 
-    void (^requestNowPlayingParentApplicationBundleIdentifier)() = ^{
+    void (^requestNowPlayingParentApplicationBundleIdentifier)(void) = ^{
       g_mediaRemote.getNowPlayingClient(g_serialdispatchQueue, ^(id client) {
         NSString *parentAppBundleID = nil;
         if (client && [client respondsToSelector:@selector
@@ -296,7 +296,7 @@ extern void adapter_stream() {
       });
     };
 
-    void (^requestNowPlayingApplicationIsPlaying)() = ^{
+    void (^requestNowPlayingApplicationIsPlaying)(void) = ^{
       g_mediaRemote.getNowPlayingApplicationIsPlaying(
           g_serialdispatchQueue, ^(bool isPlaying) {
             liveData[kMRAPlaying] = @(isPlaying);
@@ -304,7 +304,7 @@ extern void adapter_stream() {
           });
     };
 
-    void (^requestNowPlayingInfo)() = ^{
+    void (^requestNowPlayingInfo)(void) = ^{
       g_mediaRemote.getNowPlayingInfo(g_serialdispatchQueue, ^(
                                           NSDictionary *information) {
         NSString *serviceIdentifier =
@@ -352,18 +352,18 @@ extern void adapter_stream() {
       });
     };
 
-    void (^requestAll)() = ^{
+    void (^requestAll)(void) = ^{
       requestNowPlayingApplicationPID();
       requestNowPlayingParentApplicationBundleIdentifier();
       requestNowPlayingApplicationIsPlaying();
       requestNowPlayingInfo();
     };
 
-    void (^resetAll)() = ^{
+    void (^resetAll)(void) = ^{
       [liveData removeAllObjects];
     };
 
-    void (^refreshAll)() = ^{
+    void (^refreshAll)(void) = ^{
       resetAll();
       requestAll();
     };
@@ -501,9 +501,9 @@ extern void adapter_stream() {
         removeObserver:app_termination_observer];
 }
 
-extern void adapter_stream_env() { adapter_stream(); }
+extern void adapter_stream_env(void) { adapter_stream(); }
 
-extern void _adapter_stream_cancel() {
+extern void _adapter_stream_cancel(void) {
     if (g_runLoop) {
         CFRunLoopStop(g_runLoop);
     }
@@ -515,12 +515,12 @@ static void handleSignal(int signal) {
     }
 }
 
-__attribute__((constructor)) static void init() {
+__attribute__((constructor)) static void init(void) {
     g_runLoop = CFRunLoopGetCurrent();
     signal(SIGINT, handleSignal);
     signal(SIGTERM, handleSignal);
 }
-__attribute__((destructor)) static void teardown() { _adapter_stream_cancel(); }
+__attribute__((destructor)) static void teardown(void) { _adapter_stream_cancel(); }
 
 // FIXME Fix "peculiar media" (artist is updated later than title). Example:
 /*

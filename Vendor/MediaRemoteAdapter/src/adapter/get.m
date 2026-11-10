@@ -124,11 +124,8 @@ NSDictionary *internal_get(BOOL isTestMode) {
     return liveData;
 }
 
-void adapter_get() {
+void adapter_get(void) {
     NSDictionary *liveData = internal_get(NO);
-
-    NSString *micros_option = getEnvOption(@"micros");
-    const bool convert_micros = micros_option != nil;
 
     NSString *human_readable_option = getEnvOption(@"human-readable");
     const bool human_readable = human_readable_option != nil;
@@ -146,4 +143,4 @@ void adapter_get() {
     printOut(resultStr);
 }
 
-extern void adapter_get_env() { adapter_get(); }
+extern void adapter_get_env(void) { adapter_get(); }

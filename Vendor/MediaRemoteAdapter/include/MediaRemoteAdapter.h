@@ -63,14 +63,14 @@ extern NSString *kMRAMediaType;
 
 // Prints the current MediaRemote now playing information to stdout.
 // Data is encoded as a JSON dictionary or "null" when there is no information.
-extern void adapter_get();
-extern void adapter_get_env();
+extern void adapter_get(void);
+extern void adapter_get_env(void);
 
 // Streams MediaRemote now playing updates to stdout.
 // Each update is printed on a separate lined, encoded as a JSON dictionary.
 // Exits when the process receives a SIGTERM signal.
-extern void adapter_stream();
-extern void adapter_stream_env();
+extern void adapter_stream(void);
+extern void adapter_stream_env(void);
 
 typedef enum {
     kMRAPlay = 0,
@@ -91,12 +91,12 @@ typedef enum {
 
 // Sends the given MediaRemote command to the current now playing application.
 extern void adapter_send(MRACommand command);
-extern void adapter_send_env();
+extern void adapter_send_env(void);
 
 // Seeks the timeline of the nowplaying application to the given position.
 // The position must be given in microseconds.
 extern void adapter_seek(long position);
-extern void adapter_seek_env();
+extern void adapter_seek_env(void);
 
 typedef enum {
     kMRAShuffleDisabled = 1,
@@ -105,7 +105,7 @@ typedef enum {
 } MRAShuffleMode;
 
 extern void adapter_shuffle(MRAShuffleMode mode);
-extern void adapter_shuffle_env();
+extern void adapter_shuffle_env(void);
 
 typedef enum {
     kMRARepeatDisabled = 1,
@@ -114,13 +114,13 @@ typedef enum {
 } MRARepeatMode;
 
 extern void adapter_repeat(MRARepeatMode mode);
-extern void adapter_repeat_env();
+extern void adapter_repeat_env(void);
 
 extern void adapter_speed(int speed);
-extern void adapter_speed_env();
+extern void adapter_speed_env(void);
 
 // Tests whether the process is entitled to use the MediaRemote framework.
 // Exits with exit code 0, if it is. Any other exit code means it is not.
-extern void adapter_test();
+extern void adapter_test(void);
 
 #endif // MEDIAREMOTEADAPTER_ADAPTER_H

@@ -13,7 +13,7 @@ static NSTask *nowPlayingClientHelperTask = nil;
 static NSFileHandle *helperInput = nil;
 static NSFileHandle *helperOutput = nil;
 
-void cleanup_helper() {
+void cleanup_helper(void) {
     if (nowPlayingClientHelperTask && helperInput && helperOutput) {
         @try {
             [helperInput writeData:[@"cleanup\n"
@@ -74,7 +74,7 @@ void cleanup_helper() {
     helperOutput = nil;
 }
 
-void cleanup_and_exit() {
+void cleanup_and_exit(void) {
     cleanup_helper();
     exit(1);
 }

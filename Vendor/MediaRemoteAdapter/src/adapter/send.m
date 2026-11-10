@@ -14,7 +14,7 @@
 
 static NSArray<NSNumber *> *acceptedCommands;
 
-__attribute__((constructor)) static void init() {
+__attribute__((constructor)) static void init(void) {
     acceptedCommands = @[
         @(kMRAPlay),
         @(kMRAPause),
@@ -62,8 +62,8 @@ void adapter_send(MRACommand command) {
     waitForCommandCompletion();
 }
 
-static inline int send_0_command() {
+static inline int send_0_command(void) {
     return getEnvFuncParamIntSafe(@"adapter_send", 0, @"command");
 }
 
-void adapter_send_env() { adapter_send((MRACommand)send_0_command()); }
+void adapter_send_env(void) { adapter_send((MRACommand)send_0_command()); }

@@ -14,7 +14,7 @@
 
 static NSArray<NSNumber *> *acceptedModes;
 
-__attribute__((constructor)) static void init() {
+__attribute__((constructor)) static void init(void) {
     acceptedModes = @[
         @(kMRARepeatDisabled),
         @(kMRARepeatTrack),
@@ -37,8 +37,8 @@ void adapter_repeat(MRARepeatMode mode) {
     waitForCommandCompletion();
 }
 
-static inline int repeat_0_mode() {
+static inline int repeat_0_mode(void) {
     return getEnvFuncParamIntSafe(@"adapter_repeat", 0, @"mode");
 }
 
-void adapter_repeat_env() { adapter_repeat((MRARepeatMode)repeat_0_mode()); }
+void adapter_repeat_env(void) { adapter_repeat((MRARepeatMode)repeat_0_mode()); }

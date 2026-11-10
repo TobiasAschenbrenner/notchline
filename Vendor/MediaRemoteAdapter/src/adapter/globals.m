@@ -8,7 +8,7 @@
 MediaRemote *g_mediaRemote = NULL;
 dispatch_queue_t g_serialdispatchQueue;
 
-__attribute__((constructor)) static void initGlobals() {
+__attribute__((constructor)) static void initGlobals(void) {
     g_mediaRemote = [[MediaRemote alloc] init];
     if (!g_mediaRemote) {
         fail(@"Failed to initialize MediaRemote Framework");

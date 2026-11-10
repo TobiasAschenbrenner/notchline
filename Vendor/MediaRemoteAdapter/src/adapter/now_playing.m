@@ -10,7 +10,7 @@
 
 #define WAIT_TIMEOUT_MILLIS 2000
 
-void waitForCommandCompletion() {
+void waitForCommandCompletion(void) {
     id semaphore = dispatch_semaphore_create(0);
 
     g_mediaRemote.getNowPlayingApplicationPID(

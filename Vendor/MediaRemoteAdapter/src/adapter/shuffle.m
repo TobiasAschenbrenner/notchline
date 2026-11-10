@@ -14,7 +14,7 @@
 
 static NSArray<NSNumber *> *acceptedModes;
 
-__attribute__((constructor)) static void init() {
+__attribute__((constructor)) static void init(void) {
     acceptedModes = @[
         @(kMRAShuffleDisabled),
         @(kMRAShuffleAlbums),
@@ -37,10 +37,10 @@ void adapter_shuffle(MRAShuffleMode mode) {
     waitForCommandCompletion();
 }
 
-static inline int shuffle_0_mode() {
+static inline int shuffle_0_mode(void) {
     return getEnvFuncParamIntSafe(@"adapter_shuffle", 0, @"mode");
 }
 
-void adapter_shuffle_env() {
+void adapter_shuffle_env(void) {
     adapter_shuffle((MRAShuffleMode)shuffle_0_mode());
 }
