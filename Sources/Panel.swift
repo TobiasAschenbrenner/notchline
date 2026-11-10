@@ -54,8 +54,6 @@ final class NotchPanelController {
     private var pointerTimer: Timer?
     private var localMonitor: Any?
     private var movementMonitor: Any?
-    private var spaceTransition: Task<Void, Never>?
-    private var spaceSuspended = false
     private var locked = false
     private var fullscreen = false
     private var lastSpaceCheck: TimeInterval = -.infinity
@@ -66,7 +64,7 @@ final class NotchPanelController {
     private var lastScroll = -1.0
 
     private(set) var visible = true
-    var canShowLevelHUD: Bool { visible && panel.isVisible && !locked && !spaceSuspended && !fullscreen }
+    var canShowLevelHUD: Bool { visible && panel.isVisible && !locked && !fullscreen }
 
     init(model: NotchModel, media: MediaMonitor, signals: SystemSignals) {
         self.model = model
@@ -101,7 +99,6 @@ final class NotchPanelController {
     }
 
     func stop() {
-        spaceTransition?.cancel()
         pointerTimer?.invalidate()
         if let localMonitor { NSEvent.removeMonitor(localMonitor) }
         if let movementMonitor { NSEvent.removeMonitor(movementMonitor) }
@@ -147,18 +144,6 @@ final class NotchPanelController {
         updateSpace()
     }
 
-    func spaceDidChange() {
-        spaceSuspended = true
-        applyVisibility()
-        spaceTransition?.cancel()
-        spaceTransition = Task { [weak self] in
-            try? await Task.sleep(for: .milliseconds(300))
-            guard !Task.isCancelled, let self else { return }
-            self.spaceSuspended = false
-            self.reposition()
-        }
-    }
-
     func updateSpace() {
         lastSpaceCheck = ProcessInfo.processInfo.systemUptime
         fullscreen = screen.map { DisplaySpaces.isFullscreen(on: $0) } ?? false
@@ -166,7 +151,7 @@ final class NotchPanelController {
     }
 
     private func applyVisibility() {
-        let shouldShow = visible && !locked && !spaceSuspended && !fullscreen && screen != nil
+        let shouldShow = visible && !locked && !fullscreen && screen != nil
         if model.presentationVisible != shouldShow { model.presentationVisible = shouldShow }
         if shouldShow {
             if !panel.isVisible { panel.orderFrontRegardless() }
@@ -189,7 +174,7 @@ final class NotchPanelController {
     }
 
     private func updatePointer() {
-        guard visible, !locked, !spaceSuspended, screen != nil else { return }
+        guard visible, !locked, screen != nil else { return }
         let now = ProcessInfo.processInfo.systemUptime
         if now - lastSpaceCheck >= 0.3 { updateSpace() }
         guard panel.isVisible, !fullscreen else { return }

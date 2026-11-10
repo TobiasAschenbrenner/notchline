@@ -44,7 +44,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.signals.updateDisplay()
         }
         let workspace = NSWorkspace.shared.notificationCenter
-        observe(workspace, NSWorkspace.activeSpaceDidChangeNotification) { [weak self] in self?.notch.spaceDidChange() }
+        observe(workspace, NSWorkspace.activeSpaceDidChangeNotification) { [weak self] in self?.notch.updateSpace() }
         observe(workspace, NSWorkspace.didActivateApplicationNotification) { [weak self] in self?.notch.updateSpace() }
         observe(workspace, NSWorkspace.sessionDidBecomeActiveNotification) { [weak self] in
             self?.notch.setLocked(false)
