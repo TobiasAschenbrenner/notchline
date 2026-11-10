@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDisplayName</key>
+	<string>Notchline</string>
+	<key>CFBundleExecutable</key>
+	<string>Notchline</string>
+	<key>CFBundleIconFile</key>
+	<string>Notchline.icns</string>
+	<key>CFBundleIdentifier</key>
+	<string>local.notchline.app</string>
+	<key>CFBundleName</key>
+	<string>Notchline</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.1.5</string>
+	<key>CFBundleVersion</key>
+	<string>8</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>14.0</string>
+	<key>LSUIElement</key>
+	<true/>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Notchline shows an alert when an audio accessory connects or disconnects.</string>
+	<key>NSFocusStatusUsageDescription</key>
+	<string>Notchline shows a notch alert when Focus changes your ability to receive notifications.</string>
+</dict>
+</plist>
