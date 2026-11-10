@@ -167,6 +167,7 @@
 		700000000000000000000003 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				COPY_PHASE_STRIP = NO;
 				ENABLE_DEBUG_DYLIB = YES;
 				INFOPLIST_FILE = Info.plist;
 				OTHER_LDFLAGS = ("$(inherited)", "-framework", CoreAudio, "-framework", IOKit, "-framework", IOBluetooth, "-framework", AudioToolbox, "-framework", Intents, );
@@ -181,6 +182,7 @@
 		700000000000000000000004 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				COPY_PHASE_STRIP = NO;
 				INFOPLIST_FILE = Info.plist;
 				OTHER_LDFLAGS = ("$(inherited)", "-framework", CoreAudio, "-framework", IOKit, "-framework", IOBluetooth, "-framework", AudioToolbox, "-framework", Intents, );
 				PRODUCT_BUNDLE_IDENTIFIER = local.notchline.app;
