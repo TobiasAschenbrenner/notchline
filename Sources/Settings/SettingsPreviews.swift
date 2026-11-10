@@ -62,6 +62,8 @@ struct NowPlayingSettings: View {
     @StateObject private var sample = Sample()
 
     var body: some View {
+        let geometry = NotchGeometry.preview
+        let previewScale: CGFloat = 0.72
         SettingsCard {
             SettingsToggleRow(title: "Show system playback", symbol: SettingsSection.nowPlaying.symbol, isOn: $playbackEnabled)
         }
@@ -69,8 +71,10 @@ struct NowPlayingSettings: View {
             .padding(.top, 7)
         SettingsCard {
             SettingsPreviewStage(height: 160) {
-                NotchView(model: sample.model, media: sample.media, signals: sample.signals, geometry: .preview, sample: true)
-                    .scaleEffect(0.72, anchor: .top)
+                NotchView(model: sample.model, media: sample.media, signals: sample.signals, geometry: geometry, sample: true)
+                    .scaleEffect(previewScale, anchor: .top)
+                    // A scale effect changes the drawing, but SwiftUI still lays out the original width.
+                    .frame(width: geometry.panelWidth * previewScale)
             }
             SettingsDivider()
             HStack(spacing: 12) {
