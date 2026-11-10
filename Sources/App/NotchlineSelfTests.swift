@@ -113,6 +113,7 @@ enum NotchlineSelfTests {
                 && LevelKey.displayUp.nextLevel(from: 1, fine: false) == 1
                 && LevelKey.soundDown.nextLevel(from: 0, fine: false) == 0),
             ("Keyboard filter owns complete presses and passes unsupported keys to macOS", levelKeyRouting()),
+            ("Legacy alerts preference migrates and volume and brightness stay independent", independentLevelAlerts()),
             ("System media frame and elapsed position", track?.title == "Example" && track?.position(at: now.addingTimeInterval(20)) == 60),
             ("Live, timed video and unavailable timelines", liveTrack?.isLive == true && liveTrack?.canSeek == false && liveTrack?.canSkip == false
                 && browserTrack?.canSeek == true && browserTrack?.canSkip == false && browserTrack?.fallbackArtwork == "play.rectangle.fill"
@@ -122,6 +123,22 @@ enum NotchlineSelfTests {
         ]
         for (name, passed) in checks { print("\(passed ? "PASS" : "FAIL")  \(name)") }
         return checks.allSatisfy { $0.1 }
+    }
+
+    private static func independentLevelAlerts() -> Bool {
+        let domain = "local.notchline.self-test.\(UUID().uuidString)"
+        guard let defaults = UserDefaults(suiteName: domain) else { return false }
+        defer { defaults.removePersistentDomain(forName: domain) }
+        defaults.set(false, forKey: "levelAlerts")
+
+        let model = NotchModel(defaults: defaults)
+        guard !model.isAlertEnabled(.volume), !model.isAlertEnabled(.brightness) else { return false }
+        model.volumeAlerts = true
+        let restored = NotchModel(defaults: defaults)
+        restored.show(.brightness(0.5))
+        guard restored.alert == nil else { return false }
+        restored.show(.volume(0.5, muted: false))
+        return restored.alert?.kind == .volume && !restored.isAlertEnabled(.brightness)
     }
 
     private static func levelKeyRouting() -> Bool {

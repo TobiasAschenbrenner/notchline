@@ -66,7 +66,7 @@ final class SystemSignals: NSObject, ObservableObject {
     }
 
     private func refreshLevelKeyTap() {
-        if AXIsProcessTrusted(), model.levelAlerts {
+        if AXIsProcessTrusted(), model.volumeAlerts || model.brightnessAlerts {
             if !levelKeys.isRunning {
                 levelKeys.stop()
                 levelKeys.start()
@@ -78,7 +78,8 @@ final class SystemSignals: NSObject, ObservableObject {
     }
 
     private func handleLevelKey(_ key: LevelKey, fine: Bool) -> Bool {
-        guard model.levelAlerts, canShowLevelHUD?() == true else { return false }
+        guard model.isAlertEnabled(key.isDisplay ? .brightness : .volume),
+              canShowLevelHUD?() == true else { return false }
         if key.isDisplay {
             guard let level = displayBrightness.currentLevel() else { return false }
             let next = key.nextLevel(from: level, fine: fine)

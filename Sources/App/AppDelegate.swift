@@ -106,14 +106,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func showSettings() {
         if settings == nil {
-            let content = SettingsView(model: model, media: media, signals: signals, showOnDesktop: { [weak self] in
-                self?.setNotchVisible(true)
-                self?.settings?.orderOut(nil)
-            }, quit: { NSApp.terminate(nil) })
+            let content = SettingsView(model: model, media: media, signals: signals, quit: { NSApp.terminate(nil) })
             let window = NSWindow(contentViewController: NSHostingController(rootView: content))
             window.title = "Notchline Settings"
-            window.styleMask = [.titled, .closable, .miniaturizable]
+            window.styleMask = [.titled, .closable, .miniaturizable, .fullSizeContentView]
+            window.titleVisibility = .hidden
+            window.titlebarAppearsTransparent = true
+            window.appearance = NSAppearance(named: .darkAqua)
+            window.isMovableByWindowBackground = true
             window.isReleasedWhenClosed = false
+            window.setContentSize(SettingsView.windowSize)
             window.center()
             settings = window
         }

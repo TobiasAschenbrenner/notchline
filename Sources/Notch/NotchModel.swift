@@ -17,29 +17,44 @@ final class NotchModel: ObservableObject {
     @Published private(set) var track: MediaTrack?
     @Published private(set) var showsCompactPlayback = false
 
-    @Published var outline = UserDefaults.standard.object(forKey: "outline") as? Bool ?? false {
-        didSet { UserDefaults.standard.set(outline, forKey: "outline") }
+    @Published var outline: Bool {
+        didSet { defaults.set(outline, forKey: "outline") }
     }
-    @Published var powerAlerts = UserDefaults.standard.object(forKey: "powerAlerts") as? Bool ?? true {
-        didSet { UserDefaults.standard.set(powerAlerts, forKey: "powerAlerts") }
+    @Published var powerAlerts: Bool {
+        didSet { defaults.set(powerAlerts, forKey: "powerAlerts") }
     }
-    @Published var levelAlerts = UserDefaults.standard.object(forKey: "levelAlerts") as? Bool ?? true {
-        didSet { UserDefaults.standard.set(levelAlerts, forKey: "levelAlerts") }
+    @Published var volumeAlerts: Bool {
+        didSet { defaults.set(volumeAlerts, forKey: "volumeAlerts") }
     }
-    @Published var headphonesAlerts = UserDefaults.standard.object(forKey: "headphonesAlerts") as? Bool ?? true {
-        didSet { UserDefaults.standard.set(headphonesAlerts, forKey: "headphonesAlerts") }
+    @Published var brightnessAlerts: Bool {
+        didSet { defaults.set(brightnessAlerts, forKey: "brightnessAlerts") }
     }
-    @Published var focusAlerts = UserDefaults.standard.object(forKey: "focusAlerts") as? Bool ?? true {
-        didSet { UserDefaults.standard.set(focusAlerts, forKey: "focusAlerts") }
+    @Published var headphonesAlerts: Bool {
+        didSet { defaults.set(headphonesAlerts, forKey: "headphonesAlerts") }
     }
+    @Published var focusAlerts: Bool {
+        didSet { defaults.set(focusAlerts, forKey: "focusAlerts") }
+    }
+    private let defaults: UserDefaults
     private var alertExpirationTask: Task<Void, Never>?
     private var trackPeekExpirationTask: Task<Void, Never>?
     private var compactPlaybackExpirationTask: Task<Void, Never>?
     private var isPreviewAlert = false
     private var lastHeadphoneAlert: (name: String, connected: Bool, at: Date)?
 
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+        let previousLevelAlerts = defaults.object(forKey: "levelAlerts") as? Bool ?? true
+        outline = defaults.object(forKey: "outline") as? Bool ?? false
+        powerAlerts = defaults.object(forKey: "powerAlerts") as? Bool ?? true
+        volumeAlerts = defaults.object(forKey: "volumeAlerts") as? Bool ?? previousLevelAlerts
+        brightnessAlerts = defaults.object(forKey: "brightnessAlerts") as? Bool ?? previousLevelAlerts
+        headphonesAlerts = defaults.object(forKey: "headphonesAlerts") as? Bool ?? true
+        focusAlerts = defaults.object(forKey: "focusAlerts") as? Bool ?? true
+    }
+
     func show(_ alert: NotchAlert, isPreview: Bool = false, pulseLimit: Bool = false) {
-        guard isPreview || (!isPreviewAlert && allows(alert)) else { return }
+        guard isPreview || (!isPreviewAlert && isAlertEnabled(alert.kind)) else { return }
         guard isPreview || !isExpanded || alert.value != nil else { return }
         let isNewLevel = alert.value != nil && self.alert?.kind != alert.kind
         var hold = alert.duration
@@ -142,9 +157,10 @@ final class NotchModel: ObservableObject {
         if showsTrackPeek { showsTrackPeek = false }
     }
 
-    private func allows(_ alert: NotchAlert) -> Bool {
-        switch alert {
-        case .volume, .brightness: return levelAlerts
+    func isAlertEnabled(_ kind: NotchAlert.Kind) -> Bool {
+        switch kind {
+        case .volume: return volumeAlerts
+        case .brightness: return brightnessAlerts
         case .headphones: return headphonesAlerts
         case .focus: return focusAlerts
         case .power: return powerAlerts

@@ -1,105 +1,216 @@
-import AppKit
 import SwiftUI
 
 struct SettingsView: View {
+    static let windowSize = CGSize(width: 666, height: 625)
+
     @ObservedObject var model: NotchModel
     @ObservedObject var media: MediaMonitor
     @ObservedObject var signals: SystemSignals
-    let showOnDesktop: () -> Void
     let quit: () -> Void
+    var isPreview = false
+
+    @ViewState private var selection: SettingsSection = .general
+    @ViewState private var playbackPreview: SettingsPlaybackPreview = .extended
+    @ViewState private var previewBluetoothEnabled = false
+    @ViewState private var previewPlaybackEnabled = true
+    @ViewState private var previewKeyboardAllowed = false
 
     var body: some View {
-        TabView {
-            gallery.tabItem { Label("Notch", systemImage: "capsule") }
-            playback.tabItem { Label("Playback", systemImage: "play.rectangle") }
-            preferences.tabItem { Label("System", systemImage: "slider.horizontal.3") }
-        }
-        .padding(12)
-        .frame(width: 565, height: 462)
-    }
-
-    private var gallery: some View {
-        VStack(alignment: .leading, spacing: 13) {
-            HStack(spacing: 11) {
-                Image(nsImage: NSApp.applicationIconImage)
-                    .resizable()
-                    .interpolation(.high)
-                    .frame(width: 45, height: 45)
-                    .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("Notchline").font(.system(size: 20, weight: .semibold))
-                    Text("Now Playing and system activity at the top of your Mac.").font(.callout).foregroundStyle(.secondary)
+        HStack(spacing: 0) {
+            SettingsSidebar(selection: $selection)
+            Rectangle().fill(SettingsPalette.border).frame(width: 1)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(spacing: 8) {
+                    SettingsSectionIcon(section: selection)
+                    Text(selection.rawValue)
+                        .font(.system(size: 16, weight: .bold))
+                        .accessibilityAddTraits(.isHeader)
                 }
-            }
-            NotchGalleryView()
-            HStack {
-                Button("Show on Desktop", action: showOnDesktop)
-                Spacer()
-                Text("Hover over the notch to open it.").font(.caption).foregroundStyle(.secondary)
-            }
-        }
-        .padding(13)
-    }
+                .padding(.horizontal, 16)
+                .padding(.top, 14)
+                .padding(.bottom, 17)
 
-    private var playback: some View {
-        Form {
-            Section("macOS Now Playing") {
-                Toggle("Show system playback", isOn: Binding(get: { media.enabled }, set: media.setEnabled))
-                Text(media.status).font(.callout).foregroundStyle(.secondary)
-                Text("The notch follows the active session from macOS Now Playing, including browser media when it is available.")
-                    .font(.callout).foregroundStyle(.secondary)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 8) {
+                        panel
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 24)
+                }
+                .id(selection)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .background {
+                LinearGradient(
+                    colors: [Color(red: 0.15, green: 0.16, blue: 0.19), SettingsPalette.window],
+                    startPoint: .topLeading, endPoint: .bottomTrailing
+                )
             }
         }
-        .formStyle(.grouped)
+        .ignoresSafeArea(.container, edges: .top)
+        .frame(width: Self.windowSize.width, height: Self.windowSize.height)
+        .background(SettingsPalette.window)
+        .font(.system(size: 14, weight: .medium))
+        .foregroundStyle(SettingsPalette.text)
+        .environment(\.colorScheme, .dark)
+        .tint(SettingsPalette.accent)
     }
 
-    private var preferences: some View {
-        Form {
-            Section("Appearance and motion") {
-                Toggle("Contrast outline", isOn: $model.outline)
+    @ViewBuilder private var panel: some View {
+        switch selection {
+        case .general:
+            general
+        case .battery:
+            battery
+        case .connectivity:
+            connectivity
+        case .focus:
+            focus
+        case .display:
+            levelSettings(.display)
+        case .sound:
+            levelSettings(.sound)
+        case .nowPlaying:
+            NowPlayingSettings(
+                playbackEnabled: isPreview ? $previewPlaybackEnabled : Binding(get: { media.enabled }, set: media.setEnabled),
+                preview: $playbackPreview,
+                outline: model.outline
+            )
+        }
+    }
+
+    private var general: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            SettingsCard {
+                SettingsToggleRow(title: "Contrast outline", symbol: "circle.lefthalf.filled", isOn: $model.outline)
             }
-            Section("System activity") {
-                Toggle("Volume and brightness alerts", isOn: $model.levelAlerts)
-                if model.levelAlerts {
-                    LabeledContent("Keyboard indicators", value: signals.replacesSystemHUD ? "Notchline" : "macOS")
-                    if !signals.replacesSystemHUD {
-                        Text("Allow this copy of Notchline in Accessibility to handle the volume and brightness keys. Until then, macOS handles the keys and shows its indicators.")
-                            .font(.caption).foregroundStyle(.secondary)
-                        Button("Allow Keyboard Controls…", action: signals.openAccessibilitySettings)
-                    }
+            SettingsGroupHeading(title: "Preview")
+                .padding(.top, 7)
+            SettingsCard {
+                SettingsPreviewStage {
+                    let shape = NotchPresentation.idle.contour
+                    shape.fill(.black)
+                        .overlay {
+                            if model.outline { shape.stroke(.white.opacity(0.5), lineWidth: 1).clipShape(shape) }
+                        }
+                        .frame(width: 182, height: 21)
                 }
-                Toggle("Headphone alerts", isOn: $model.headphonesAlerts)
-                Toggle("Detect Bluetooth connections", isOn: Binding(get: { signals.bluetoothEnabled }, set: signals.setBluetoothEnabled))
-                Toggle("Focus alerts", isOn: $model.focusAlerts)
-                Toggle("Battery alerts", isOn: $model.powerAlerts)
-                HStack {
-                    Button("Allow Focus Status…", action: signals.requestFocusAccess)
-                    if !model.focusAccess.isEmpty {
-                        Text(model.focusAccess).font(.caption).foregroundStyle(.secondary)
-                    }
+                .clipShape(RoundedRectangle(cornerRadius: 9))
+                .padding(10)
+            }
+            SettingsCard {
+                SettingsRow {
+                    Text("Notchline")
+                    Spacer()
+                    Button("Quit Notchline", action: quit)
                 }
             }
-            Section("Available signals") {
-                LabeledContent("Audio output", value: model.output?.routeName ?? "Unavailable")
-                LabeledContent("Display brightness", value: model.brightness?.formatted(.percent.precision(.fractionLength(0))) ?? "Unavailable")
-                LabeledContent("Battery charge", value: model.power.map { "\($0.percentage)%" } ?? "Unavailable")
-                if let output = model.output, let volume = output.volume {
-                    Slider(value: Binding(get: { model.output?.volume ?? volume }, set: signals.setVolume)) {
-                        Text("Output volume")
+            .padding(.top, 6)
+        }
+    }
+
+    @ViewBuilder private var battery: some View {
+        SettingsCard {
+            SettingsToggleRow(title: "Battery alerts", symbol: SettingsSection.battery.symbol, isOn: $model.powerAlerts)
+            SettingsDivider()
+            SettingsValueRow(
+                title: "Battery charge",
+                value: model.power.map { "\($0.percentage)%" } ?? "Unavailable",
+                showsPill: model.power != nil
+            )
+        }
+        SettingsGroupHeading(title: "Preview")
+            .padding(.top, 7)
+        SettingsAlertPreview(
+            alert: .power(PowerState(percentage: 10, pluggedIn: false, lowPower: false), title: "Low battery"),
+            caption: "Low battery alert"
+        )
+    }
+
+    @ViewBuilder private var connectivity: some View {
+        SettingsCard {
+            SettingsToggleRow(title: "Headphone alerts", symbol: SettingsSection.connectivity.symbol, isOn: $model.headphonesAlerts)
+            SettingsDivider()
+            SettingsToggleRow(
+                title: "Detect Bluetooth connections",
+                isOn: isPreview ? $previewBluetoothEnabled : Binding(get: { signals.bluetoothEnabled }, set: signals.setBluetoothEnabled)
+            )
+        }
+        SettingsGroupHeading(title: "Preview")
+            .padding(.top, 7)
+        SettingsAlertPreview(
+            alert: .headphones("AirPods Pro", "airpodspro", connected: true, battery: 72),
+            caption: "AirPods Pro connected"
+        )
+    }
+
+    @ViewBuilder private var focus: some View {
+        SettingsCard {
+            SettingsToggleRow(title: "Focus alerts", symbol: SettingsSection.focus.symbol, isOn: $model.focusAlerts)
+            SettingsDivider()
+            SettingsValueRow(title: "Focus sharing", value: model.focusAccess.isEmpty ? "Access required" : model.focusAccess)
+            if model.focusAccess != "Focus sharing enabled" {
+                SettingsDivider()
+                SettingsRow {
+                    Button("Allow Focus Status…") {
+                        if isPreview { model.focusAccess = "Focus sharing enabled" }
+                        else { signals.requestFocusAccess() }
                     }
                 }
-                if let brightness = model.brightness {
-                    Slider(value: Binding(get: { model.brightness ?? brightness }, set: signals.setBrightness)) {
-                        Text("Brightness")
-                    }
-                }
-                if let error = signals.controlError { Text(error).foregroundStyle(.secondary) }
-            }
-            Section {
-                Button("Quit Notchline", action: quit)
             }
         }
-        .formStyle(.grouped)
+        SettingsGroupHeading(title: "Preview")
+            .padding(.top, 7)
+        SettingsAlertPreview(alert: .focus(true), caption: "Focus on")
     }
 
+    private func levelSettings(_ section: SettingsSection) -> some View {
+        let isDisplay = section == .display
+        return LevelSettings(
+            section: section,
+            alertsEnabled: isDisplay ? $model.brightnessAlerts : $model.volumeAlerts,
+            level: isDisplay ? brightness : volume,
+            output: model.output,
+            usesNotchlineIndicators: isPreview ? previewKeyboardAllowed : signals.replacesSystemHUD,
+            allowKeyboardControls: {
+                if isPreview { previewKeyboardAllowed = true }
+                else { signals.openAccessibilitySettings() }
+            },
+            controlError: signals.controlError
+        )
+    }
+
+    private var brightness: Binding<Double>? {
+        guard let current = model.brightness else { return nil }
+        return Binding(get: { model.brightness ?? current }, set: { level in
+            if isPreview { model.brightness = level }
+            else { signals.setBrightness(level) }
+        })
+    }
+
+    private var volume: Binding<Double>? {
+        guard let output = model.output, let current = output.volume else { return nil }
+        return Binding(get: { model.output?.volume ?? current }, set: { level in
+            if isPreview {
+                model.output = SoundOutput(
+                    id: output.id, source: output.source, name: output.name, transport: output.transport,
+                    volume: level, muted: output.muted
+                )
+            } else {
+                signals.setVolume(level)
+            }
+        })
+    }
 }
+
+#if DEBUG
+#Preview("Notchline Settings") {
+    let model = NotchModel(defaults: UserDefaults(suiteName: "local.notchline.settings-preview")!)
+    model.brightness = 0.64
+    model.output = SoundOutput(id: 0, source: nil, name: "AirPods Pro", transport: nil, volume: 0.44, muted: false)
+    model.power = PowerState(percentage: 72, pluggedIn: false, lowPower: false)
+    return SettingsView(model: model, media: MediaMonitor(model: model), signals: SystemSignals(model: model), quit: {}, isPreview: true)
+}
+#endif
