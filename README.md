@@ -24,6 +24,8 @@ To show hardware key indicators in the notch, enable **Volume alerts** in **Sett
 
 The system provides the available signals. **Detect Bluetooth connections** enables accessory connection alerts. The AirPods ring uses the lower reported earbud charge when both buds report. It uses the available headset charge when only one value is reported. The ring can fill in shortly after connection as Bluetooth data arrives. **Allow Focus Status** requests macOS Focus access. The brightness slider targets the built-in display.
 
+The AirPods Pro connection alert uses Jayrenn Reeve’s CC0 model, adapted to show just the two earbuds. [Model source](https://www.blendkit.com/asset-gallery-detail/27fb8b1c-fc79-41d4-9e2b-fef9d75329c1/)
+
 ## Build from source
 
 With macOS Command Line Tools installed, run these commands from this folder.

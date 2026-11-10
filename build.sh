@@ -16,7 +16,7 @@ mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources" "$framework/Versions/A/
 
 plutil -lint "$project_dir/Info.plist" >/dev/null
 cp "$project_dir/Info.plist" "$app/Contents/Info.plist"
-cp "$project_dir/Resources/Notchline.icns" "$app/Contents/Resources/Notchline.icns"
+cp "$project_dir/Resources/"{Notchline.icns,AirPodsPro.usdz} "$app/Contents/Resources/"
 cp "$adapter/bin/mediaremote-adapter.pl" "$app/Contents/Resources/"
 cp "$adapter/LICENSE" "$app/Contents/Resources/MediaRemoteAdapter-LICENSE.txt"
 

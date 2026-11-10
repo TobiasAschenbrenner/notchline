@@ -92,6 +92,7 @@ enum NotchlineSelfTests {
             ("Hover dwell, exit and drag hold", waitsToOpen && opens && keepsOpen && waitsToClose && closes),
             ("AirPods bud charge, case exclusion and late update", battery == 65 && absentBattery == nil && updatesCharge),
             ("Standard HUD and AirPods compact geometry", matchesAlertGeometry && standardHUD.width < geometry.panelWidth),
+            ("AirPods Pro model is bundled", Bundle.main.url(forResource: "AirPodsPro", withExtension: "usdz") != nil),
             ("Headphone alert hands off to and from compact playback", headphonePlaybackHandoff(track: track, geometry: geometry)),
             ("White HUD rail, device icon and volume bounds", NotchHUDMetrics.railWidth == 68 && NotchHUDMetrics.railHeight == 4
                 && alerts[0].symbol(for: airPods) == "airpodspro"
